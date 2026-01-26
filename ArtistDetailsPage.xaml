@@ -1,0 +1,126 @@
+<Page x:Class="SubsonicUWP.ArtistDetailsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SubsonicUWP"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
+
+    <Page.Resources>
+        <DataTemplate x:Key="SongTemplate">
+            <Grid Margin="0,8" MinHeight="48" Background="Transparent" RightTapped="Song_RightTapped">
+                <FlyoutBase.AttachedFlyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Text="Play next" Click="SongPlayNext_Click" Icon="Upload"/>
+                        <MenuFlyoutItem Text="Add to queue" Click="SongAddToQueue_Click" Icon="Add"/>
+                        <MenuFlyoutItem Text="Download" Click="SongDownload_Click" Icon="Download"/>
+                    </MenuFlyout>
+                </FlyoutBase.AttachedFlyout>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,16,0" Opacity="0.5" FontSize="16"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" FontSize="15" LineHeight="20"/>
+                    <TextBlock Text="{Binding Artist}" FontSize="12" Opacity="0.6" LineHeight="16"/>
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="{Binding DurationFormatted}" VerticalAlignment="Center" HorizontalAlignment="Right" Opacity="0.5" FontSize="12"/>
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Padding="24">
+                <!-- Header -->
+                <!-- ... content ... -->
+                <!-- I can't easily preserve content without copying it or using a huge range. -->
+                <!-- I will try to target just the start and end of the file to wrap it if possible, or target the specific closing area. -->
+                <!-- But I need to add <Grid> at the top too. -->
+                <!-- Strategy: Targeted Search & Replace for top and bottom separately. -->
+
+                <!-- Wait, I can't do two replacements in one go unless I use MultiReplace. -->
+                <!-- I will use MultiReplaceFileContent. -->
+                <Grid Margin="0,0,0,32">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,24,0">
+                        <Image x:Name="ArtistImage" Width="150" Height="150" Stretch="UniformToFill" Margin="0,0,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock x:Name="ArtistName" Text="Artist Name" FontSize="42" FontWeight="Bold" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="Artist" Opacity="0.6" FontSize="18"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Albums -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Click="ToggleAlbums_Click" Background="Transparent" BorderThickness="0" HorizontalAlignment="Left" Padding="0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Albums" FontSize="24" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="AlbumsChevron" Text="&#xE0E3;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="12,4,0,0" FontSize="12"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Shuffle Button Right Aligned, No Box -->
+                    <Button Grid.Column="2" VerticalAlignment="Center" Click="ShuffleArtist_Click" Background="Transparent" BorderThickness="0" Padding="8">
+                        <TextBlock Text="&#xE14B;" FontFamily="Segoe MDL2 Assets" FontSize="20" Opacity="0.8"/>
+                    </Button>
+                </Grid>
+
+                <GridView x:Name="AlbumsGrid" ItemsSource="{Binding Albums}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Album_Click">
+                    <GridView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Width="140" Margin="0,0,12,12" Background="Transparent" RightTapped="Album_RightTapped">
+                                <FlyoutBase.AttachedFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Play" Click="AlbumPlay_Click" Icon="Play"/>
+                                        <MenuFlyoutItem Text="Play Next" Click="AlbumPlayNext_Click" Icon="Upload"/>
+                                        <MenuFlyoutItem Text="Add to Queue" Click="AlbumAddToQueue_Click" Icon="Add"/>
+                                        <MenuFlyoutItem Text="Download" Click="AlbumDownload_Click" Icon="Download"/>
+                                    </MenuFlyout>
+                                </FlyoutBase.AttachedFlyout>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="140"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Image Source="{Binding ImageUrl}" Stretch="UniformToFill"/>
+                                <TextBlock Grid.Row="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" Margin="0,8,0,0" FontWeight="SemiBold"/>
+                            </Grid>
+                        </DataTemplate>
+                    </GridView.ItemTemplate>
+                </GridView>
+
+                <!-- Top Songs -->
+                <TextBlock Text="Top Songs" FontSize="24" FontWeight="SemiBold" Margin="0,32,0,12"/>
+                <ListView ItemsSource="{Binding TopSongs}" ItemTemplate="{StaticResource SongTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Song_Click">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Offline Overlay -->
+        <Grid Background="{ThemeResource WindowBackgroundBrush}" Visibility="{Binding IsOffline, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="200" Height="10" Foreground="{ThemeResource AccentBrush}"/>
+                <TextBlock Text="Waiting for connection..." Margin="0,12,0,0" HorizontalAlignment="Center" Opacity="0.7"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

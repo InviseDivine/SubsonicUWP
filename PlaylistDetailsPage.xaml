@@ -1,0 +1,66 @@
+<Page x:Class="SubsonicUWP.PlaylistDetailsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SubsonicUWP"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
+
+    <Grid>
+        <ListView x:Name="TrackList" ItemsSource="{Binding Tracks}" CanReorderItems="True" AllowDrop="True" CanDragItems="True" IsItemClickEnabled="True" ItemClick="TrackList_ItemClick" Padding="12">
+            <ListView.Header>
+                <Border Padding="24" Background="#11FFFFFF">
+                    <StackPanel>
+                        <!-- Editable Title Grid -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="NameBox" FontSize="32" FontWeight="SemiBold" Background="Transparent" BorderThickness="0" Padding="0" KeyDown="NameBox_KeyDown" LostFocus="NameBox_LostFocus" PlaceholderText="Queue Name"/>
+                            <Button x:Name="RenameButton" Grid.Column="1" Click="RenameButton_Click" Background="Transparent" BorderThickness="0" Padding="12,4" VerticalAlignment="Center" Margin="8,0,0,0" ToolTipService.ToolTip="Rename">
+                                <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="20" Opacity="0.5"/>
+                            </Button>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button x:Name="PlayAllButton" Content="Play All" Click="PlayAll_Click" Margin="0,0,12,0"/>
+                            <Button x:Name="SaveOrderButton" Content="Save Order" Click="SaveOrder_Click" Opacity="0.7" Visibility="Collapsed"/>
+                            <Button x:Name="SaveAsPlaylistButton" Content="Save as Playlist" Click="SaveAsPlaylist_Click" Opacity="0.7" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </ListView.Header>
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="48"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="32"/>
+                        </Grid.ColumnDefinitions>
+                        <Image Source="{Binding ImageUrl}" Width="48" Height="48" Stretch="UniformToFill"/>
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Artist}" Opacity="0.7" FontSize="12"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="{Binding DurationFormatted}" VerticalAlignment="Center" Opacity="0.6" Margin="12,0"/>
+                        <TextBlock Grid.Column="3" Text="&#xE700;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" HorizontalAlignment="Right" Opacity="0.3"/>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <!-- Offline Overlay -->
+        <Grid Background="{ThemeResource WindowBackgroundBrush}" Visibility="{Binding IsOffline, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="200" Height="10" Foreground="{ThemeResource AccentBrush}"/>
+                <TextBlock Text="Waiting for connection..." Margin="0,12,0,0" HorizontalAlignment="Center" Opacity="0.7"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

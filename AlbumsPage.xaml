@@ -1,0 +1,69 @@
+<Page x:Class="SubsonicUWP.AlbumsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SubsonicUWP"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
+
+    <Page.Transitions>
+        <TransitionCollection>
+            <EntranceThemeTransition/>
+        </TransitionCollection>
+    </Page.Transitions>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Albums" FontSize="48" FontWeight="Light" Margin="24,12,0,12" FontFamily="Segoe UI Light"/>
+
+        <GridView Grid.Row="1" ItemsSource="{Binding Albums}" Padding="12" SelectionMode="Single" IsItemClickEnabled="True" ItemClick="Album_Click">
+            <!-- (Keeping existing templates) -->
+            <GridView.ItemContainerTransitions>
+                <TransitionCollection>
+                    <AddDeleteThemeTransition/>
+                    <ContentThemeTransition/>
+                    <ReorderThemeTransition/>
+                    <EntranceThemeTransition IsStaggeringEnabled="True"/>
+                </TransitionCollection>
+            </GridView.ItemContainerTransitions>
+            <GridView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,0,12,24" Width="148" Background="Transparent" RightTapped="Grid_RightTapped">
+                        <FlyoutBase.AttachedFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="Play" Click="AlbumPlay_Click" Icon="Play"/>
+                                <MenuFlyoutItem Text="Play Next" Click="AlbumPlayNext_Click" Icon="Upload"/>
+                                <MenuFlyoutItem Text="Add to Queue" Click="AlbumAddToQueue_Click" Icon="Add"/>
+                                <MenuFlyoutItem Text="Download" Click="AlbumDownload_Click" Icon="Download"/>
+                            </MenuFlyout>
+                        </FlyoutBase.AttachedFlyout>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="148"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Image Source="{Binding ImageUrl}" Stretch="UniformToFill"/>
+                        <!-- Fallback Icon if no image -->
+                        <TextBlock Text="&#xE93C;" FontFamily="Segoe MDL2 Assets" FontSize="40" Foreground="#555" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" Visibility="{Binding ImageUrl, Converter={StaticResource StringNullOrEmptyToVisibilityConverter}}"/>
+
+                        <StackPanel Grid.Row="1" Margin="0,8,0,0">
+                            <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding Artist}" FontSize="12" Opacity="0.6" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+        </GridView>
+
+        <!-- Offline Overlay -->
+        <Grid Grid.Row="1" Background="{ThemeResource WindowBackgroundBrush}" Visibility="{Binding IsOffline, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="200" Height="10" Foreground="{ThemeResource AccentBrush}"/>
+                <TextBlock Text="Waiting for connection..." Margin="0,12,0,0" HorizontalAlignment="Center" Opacity="0.7"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

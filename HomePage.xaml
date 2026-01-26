@@ -1,0 +1,133 @@
+<Page x:Class="SubsonicUWP.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SubsonicUWP"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
+
+    <Page.Resources>
+        <MenuFlyout x:Key="MediaItemMenu">
+            <MenuFlyoutItem Text="Add to current queue" Click="AddToQueue_Click"/>
+            <MenuFlyoutItem Text="Add to playlist" Click="AddToPlaylist_Click"/>
+            <MenuFlyoutItem Text="Play next" Click="PlayNext_Click"/>
+            <MenuFlyoutItem Text="Favorite" Click="Favorite_Click"/>
+            <MenuFlyoutItem Text="Download" Click="Download_Click"/>
+        </MenuFlyout>
+
+        <DataTemplate x:Key="AlbumTemplate">
+            <Grid Width="120" Margin="0,0,12,12" Background="{ThemeResource ControlBackgroundBrush}" FlyoutBase.AttachedFlyout="{StaticResource MediaItemMenu}" RightTapped="MediaItemGrid_RightTapped" Holding="MediaItemGrid_Holding">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="120"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <!-- Fallback Icon if no image -->
+                <TextBlock Text="&#xE93C;" FontFamily="Segoe MDL2 Assets" FontSize="40" Foreground="{ThemeResource SecondaryForegroundBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" UseLayoutRounding="True" Visibility="{Binding ImageUrl, Converter={StaticResource NullToVis}}"/>
+                <Image Source="{Binding ImageUrl}" Stretch="UniformToFill"/>
+                <Border Grid.Row="1" Padding="4">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Title}" Foreground="{ThemeResource ForegroundBrush}" TextTrimming="CharacterEllipsis" FontSize="12" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Artist}" Foreground="{ThemeResource SecondaryForegroundBrush}" TextTrimming="CharacterEllipsis" FontSize="11"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <ItemsPanelTemplate x:Key="HorizontalPanel">
+            <StackPanel Orientation="Horizontal"/>
+        </ItemsPanelTemplate>
+
+        <local:StringNullOrEmptyToVisibilityConverter x:Key="NullToVis"/>
+    </Page.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <Border Padding="24">
+                <StackPanel>
+                    <!-- Page Header -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Home" FontFamily="Segoe UI Light" FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{ThemeResource ForegroundBrush}"/>
+                        <Button Grid.Column="1" Click="Refresh_Click" Background="Transparent" BorderThickness="0" Padding="8">
+                            <SymbolIcon Symbol="Refresh" Foreground="{ThemeResource ForegroundBrush}" />
+                        </Button>
+                    </Grid>
+
+                    <!-- Favorites -->
+                    <Button Margin="0,0,0,12" Click="Favorites_Click" Background="Transparent" BorderThickness="0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <ContentPresenter/>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Favorites" FontFamily="Segoe UI Light" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{ThemeResource ForegroundBrush}"/>
+                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{ThemeResource SecondaryForegroundBrush}"/>
+                        </StackPanel>
+                    </Button>
+
+                    <GridView ItemsSource="{Binding Favorites}" ItemTemplate="{StaticResource AlbumTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Enabled" Background="Transparent" BorderThickness="0" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Song_ItemClick">
+                        <GridView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </GridView.ItemsPanel>
+                    </GridView>
+
+                    <!-- Recent -->
+                    <Button Margin="0,24,0,12" Click="Recent_Click" Background="Transparent" BorderThickness="0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <ContentPresenter/>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Recently Added" FontFamily="Segoe UI Light" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{ThemeResource ForegroundBrush}"/>
+                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{ThemeResource SecondaryForegroundBrush}"/>
+                        </StackPanel>
+                    </Button>
+
+                    <GridView ItemsSource="{Binding RecentItems}" ItemTemplate="{StaticResource AlbumTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Enabled" Background="Transparent" BorderThickness="0" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Song_ItemClick">
+                        <GridView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </GridView.ItemsPanel>
+                    </GridView>
+
+                    <!-- Random -->
+                    <Button Margin="0,24,0,12" Click="Random_Click" Background="Transparent" BorderThickness="0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <ContentPresenter/>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Random Songs" FontFamily="Segoe UI Light" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{ThemeResource ForegroundBrush}"/>
+                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{ThemeResource SecondaryForegroundBrush}"/>
+                        </StackPanel>
+                    </Button>
+
+                    <GridView ItemsSource="{Binding RandomSongs}" ItemTemplate="{StaticResource AlbumTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Enabled" Background="Transparent" BorderThickness="0" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Song_ItemClick">
+                        <GridView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </GridView.ItemsPanel>
+                    </GridView>
+
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+
+        <!-- Offline Overlay -->
+        <Grid Background="{ThemeResource WindowBackgroundBrush}" Visibility="{Binding IsOffline, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="200" Height="10" Foreground="{ThemeResource AccentBrush}"/>
+                <TextBlock Text="Waiting for connection..." Margin="0,12,0,0" HorizontalAlignment="Center" Opacity="0.7"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

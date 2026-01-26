@@ -1,0 +1,55 @@
+<Page x:Class="SubsonicUWP.RecentSongsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SubsonicUWP"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
+
+    <Page.Resources>
+        <MenuFlyout x:Key="MediaItemMenu">
+            <MenuFlyoutItem Text="Add to current queue" Click="AddToQueue_Click"/>
+            <MenuFlyoutItem Text="Add to playlist" Click="AddToPlaylist_Click"/>
+            <MenuFlyoutItem Text="Play next" Click="PlayNext_Click"/>
+            <MenuFlyoutItem Text="Favorite"/>
+            <MenuFlyoutItem Text="Download" Click="Download_Click"/>
+        </MenuFlyout>
+
+        <DataTemplate x:Key="AlbumTemplate">
+            <Grid Width="120" Margin="0,0,12,12" Background="#1F1F1F" FlyoutBase.AttachedFlyout="{StaticResource MediaItemMenu}" RightTapped="MediaItemGrid_RightTapped" Holding="MediaItemGrid_Holding">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="120"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Image Source="{Binding ImageUrl}" Stretch="UniformToFill" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                <TextBlock Text="&#xE93C;" FontFamily="Segoe MDL2 Assets" FontSize="40" Foreground="#555" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" Visibility="{Binding ImageUrl, Converter={StaticResource NullToVis}}"/>
+                <Border Grid.Row="1" Padding="4">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Title}" Foreground="White" TextTrimming="CharacterEllipsis" FontSize="12" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Artist}" Foreground="#AAA" TextTrimming="CharacterEllipsis" FontSize="11"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DataTemplate>
+        <local:StringNullOrEmptyToVisibilityConverter x:Key="NullToVis"/>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Recently Added" FontSize="48" FontWeight="Light" Margin="24,12,0,12" FontFamily="Segoe UI Light"/>
+
+        <GridView Grid.Row="1" ItemsSource="{Binding Songs}" ItemTemplate="{StaticResource AlbumTemplate}" Padding="12" SelectionMode="Single" IsItemClickEnabled="True" ItemClick="GridView_ItemClick">
+        </GridView>
+
+        <!-- Offline Overlay -->
+        <Grid Grid.Row="1" Background="{ThemeResource WindowBackgroundBrush}" Visibility="{Binding IsOffline, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="200" Height="10" Foreground="{ThemeResource AccentBrush}"/>
+                <TextBlock Text="Waiting for connection..." Margin="0,12,0,0" HorizontalAlignment="Center" Opacity="0.7"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

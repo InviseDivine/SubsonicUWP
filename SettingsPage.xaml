@@ -1,0 +1,63 @@
+<Page x:Class="SubsonicUWP.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
+
+    <Grid Background="{ThemeResource WindowBackgroundBrush}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="24">
+                <TextBlock Text="Settings" FontSize="48" FontWeight="Light" Margin="0,0,0,24" FontFamily="Segoe UI Light"/>
+
+                <TextBlock Text="Server Configuration" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+                <TextBox x:Name="ServerUrlBox" Header="Server Address" PlaceholderText="http://your-server.com" Margin="0,0,0,12"/>
+                <TextBox x:Name="UsernameBox" Header="Username" Margin="0,0,0,12"/>
+                <PasswordBox x:Name="PasswordBox" Header="Password" Margin="0,0,0,24"/>
+
+                <Button Content="Test Connection &amp; Save" Click="Save_Click" Width="200"/>
+                <TextBlock x:Name="StatusBlock" Margin="0,12" Foreground="Red"/>
+
+                <TextBlock Text="Appearance" FontSize="20" FontWeight="SemiBold" Margin="0,24,0,12"/>
+                <ComboBox x:Name="ThemeValidator" Header="Theme" SelectionChanged="Theme_SelectionChanged" Margin="0,0,0,24" Width="200">
+                    <ComboBoxItem Content="System" Tag="System"/>
+                    <ComboBoxItem Content="Light" Tag="Light"/>
+                    <ComboBoxItem Content="Dark" Tag="Dark"/>
+                    <ComboBoxItem Content="AMOLED (True Black)" Tag="AMOLED"/>
+                </ComboBox>
+
+                <TextBlock Text="Pinned Albums (Idle Tile)" FontSize="20" FontWeight="SemiBold" Margin="0,24,0,12"/>
+                <ToggleSwitch x:Name="MixRandomSwitch" Header="Mix with Random Albums" OffContent="Only use pinned" OnContent="Always mix random albums" Margin="0,0,0,12" Toggled="MixRandomSwitch_Toggled"/>
+                <ListView x:Name="PinnedAlbumsList" ScrollViewer.VerticalScrollMode="Disabled" Margin="0,0,0,24">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="0"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,4,0,4" Padding="12,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Image Source="{Binding ImageUrl}" Width="48" Height="48" Margin="0,0,16,0" Stretch="UniformToFill"/>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Artist}" FontSize="13" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+
+                                <Button Grid.Column="2" Click="RemovePin_Click" Width="40" Height="40" Padding="0" Margin="12,0,0,0" HorizontalAlignment="Right">
+                                    <SymbolIcon Symbol="Delete" Foreground="Black"/>
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>
