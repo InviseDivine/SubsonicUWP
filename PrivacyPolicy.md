@@ -42,4 +42,6 @@ This Application **does not** use any third-party analytics SDKs (such as Google
 If you have any questions regarding privacy while using the Application, or have questions about our practices, please contact us.
 
 **Publisher:** Matej Chudý
+
 **E-mail:** matejchudy@icloud.com
+
