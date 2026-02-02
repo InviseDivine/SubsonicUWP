@@ -7,34 +7,87 @@
 
     <Page.Resources>
         <MenuFlyout x:Key="TrackMenu">
-            <MenuFlyoutItem Text="Play" Click="TrackPlay_Click" Icon="Play"/>
-            <MenuFlyoutItem Text="Play Next" Click="TrackPlayNext_Click" Icon="Upload"/>
-            <MenuFlyoutItem Text="Add to Queue" Click="TrackAddToQueue_Click" Icon="Add"/>
-            <MenuFlyoutItem Text="Download" Click="TrackDownload_Click" Icon="Download"/>
+            <MenuFlyoutItem Text="Play" Click="TrackPlay_Click">
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Play"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Play Next" Click="TrackPlayNext_Click">
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Upload"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Add to Queue" Click="TrackAddToQueue_Click">
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Add"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Add to cache" Click="TrackAddToCache_Click">
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Download"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Export as mp3" Click="TrackExport_Click">
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="SaveLocal"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
         </MenuFlyout>
     </Page.Resources>
 
     <Grid>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="WindowStates">
+                <VisualState x:Name="WideState">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="850"/>
+                    </VisualState.StateTriggers>
+                </VisualState>
+                <VisualState x:Name="NarrowState">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="0"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="HeaderBorder.Padding" Value="12"/>
+                        <!-- AlbumCover Size restored to default (140) to match content height -->
+                        <Setter Target="AlbumCover.Margin" Value="0,0,12,0"/>
+                        <Setter Target="AlbumTitle.FontSize" Value="20"/>
+                        <Setter Target="AlbumArtist.FontSize" Value="14"/>
+                        <Setter Target="HeaderButtonsPanel.Margin" Value="0,8,0,0"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Padding="24" Background="#11FFFFFF">
+        <Border x:Name="HeaderBorder" Padding="24" Background="#11FFFFFF">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Image x:Name="AlbumCover" Width="120" Height="120" Stretch="UniformToFill" Margin="0,0,24,0"/>
+                <Image x:Name="AlbumCover" Width="140" Height="140" Stretch="UniformToFill" Margin="0,0,24,0"/>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock x:Name="AlbumTitle" Text="Album Name" FontSize="32" FontWeight="SemiBold"/>
-                    <TextBlock x:Name="AlbumArtist" Text="Artist" FontSize="18" Opacity="0.7"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Content="Play Album" Click="PlayAlbum_Click" Margin="0,0,8,0"/>
-                        <Button Content="Download" Click="DownloadAlbum_Click" Margin="0,0,8,0"/>
-                        <Button x:Name="PinButton" Content="Pin to Tile" Click="PinButton_Click"/>
+                    <TextBlock x:Name="AlbumTitle" Text="Album Name" FontSize="32" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxLines="2"/>
+                    <TextBlock x:Name="AlbumArtist" Text="Artist" FontSize="18" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
+                    <StackPanel x:Name="HeaderButtonsPanel" Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Click="PlayAlbum_Click" Margin="0,0,8,0" Width="44" Height="44" ToolTipService.ToolTip="Play Album">
+                            <SymbolIcon Symbol="Play"/>
+                        </Button>
+                        <Button Click="AddToCacheAlbum_Click" Margin="0,0,8,0" Width="44" Height="44" ToolTipService.ToolTip="Add to Cache">
+                            <SymbolIcon Symbol="Download"/>
+                        </Button>
+                        <Button Click="ExportAlbum_Click" Margin="0,0,8,0" Width="44" Height="44" ToolTipService.ToolTip="Export as mp3">
+                            <SymbolIcon Symbol="SaveLocal"/>
+                        </Button>
+                        <Button x:Name="PinButton" Click="PinButton_Click" Width="44" Height="44" ToolTipService.ToolTip="Pin to Start">
+                            <SymbolIcon Symbol="Pin"/>
+                        </Button>
                     </StackPanel>
                 </StackPanel>
             </Grid>

@@ -12,7 +12,8 @@
                     <MenuFlyout>
                         <MenuFlyoutItem Text="Play next" Click="SongPlayNext_Click" Icon="Upload"/>
                         <MenuFlyoutItem Text="Add to queue" Click="SongAddToQueue_Click" Icon="Add"/>
-                        <MenuFlyoutItem Text="Download" Click="SongDownload_Click" Icon="Download"/>
+                        <MenuFlyoutItem Text="Add to cache" Click="SongAddToCache_Click" Icon="Download"/>
+                        <MenuFlyoutItem Text="Export as mp3" Click="SongExport_Click" Icon="SaveLocal"/>
                     </MenuFlyout>
                 </FlyoutBase.AttachedFlyout>
                 <Grid.ColumnDefinitions>
@@ -88,7 +89,8 @@
                                         <MenuFlyoutItem Text="Play" Click="AlbumPlay_Click" Icon="Play"/>
                                         <MenuFlyoutItem Text="Play Next" Click="AlbumPlayNext_Click" Icon="Upload"/>
                                         <MenuFlyoutItem Text="Add to Queue" Click="AlbumAddToQueue_Click" Icon="Add"/>
-                                        <MenuFlyoutItem Text="Download" Click="AlbumDownload_Click" Icon="Download"/>
+                                        <MenuFlyoutItem Text="Add to cache" Click="AlbumAddToCache_Click" Icon="Download"/>
+                                        <MenuFlyoutItem Text="Export as mp3" Click="AlbumExport_Click" Icon="SaveLocal"/>
                                     </MenuFlyout>
                                 </FlyoutBase.AttachedFlyout>
                                 <Grid.RowDefinitions>

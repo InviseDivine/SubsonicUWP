@@ -20,9 +20,9 @@
     <PackageCertificateKeyFile>SubsonicUWP_Revived_TemporaryKey.pfx</PackageCertificateKeyFile>
     <Language>C#</Language>
     <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
-    <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
+    <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
     <AppxBundle>Always</AppxBundle>
-    <AppInstallerUpdateFrequency>1</AppInstallerUpdateFrequency>
+    <AppInstallerUpdateFrequency>0</AppInstallerUpdateFrequency>
     <AppInstallerCheckForUpdateFrequency>OnApplicationRun</AppInstallerCheckForUpdateFrequency>
     <AppxSymbolPackageEnabled>True</AppxSymbolPackageEnabled>
     <AppxBundlePlatforms>x86|x64|arm</AppxBundlePlatforms>
@@ -129,17 +129,23 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Converters.cs" />
+    <Compile Include="Converters\LocalCoverArtConverter.cs" />
     <Compile Include="SubsonicItem.cs" />
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <Compile Include="SubsonicService.cs" />
     <Compile Include="DownloadManager.cs" />
+    <Compile Include="Services\BufferingStream.cs" />
+    <Compile Include="Services\PlaybackService.cs" />
     <Compile Include="SessionManager.cs" />
     <Compile Include="NavItem.cs" />
     <Compile Include="PinnedAlbumManager.cs" />
     <Compile Include="TileManager.cs" />
     <Compile Include="ThemeHelper.cs" />
+    <Compile Include="CacheManagerPage.xaml.cs">
+      <DependentUpon>CacheManagerPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="SettingsPage.xaml.cs">
       <DependentUpon>SettingsPage.xaml</DependentUpon>
     </Compile>
@@ -192,6 +198,9 @@
     <Compile Include="SearchPage.xaml.cs">
       <DependentUpon>SearchPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Controls\ScrollableTextBlock.xaml.cs">
+      <DependentUpon>ScrollableTextBlock.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -217,6 +226,10 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Page Include="MainPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="CacheManagerPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -281,6 +294,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="SearchPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Controls\ScrollableTextBlock.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

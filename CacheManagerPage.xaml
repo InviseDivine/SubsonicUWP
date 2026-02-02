@@ -1,0 +1,102 @@
+<Page x:Class="SubsonicUWP.CacheManagerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SubsonicUWP"
+    xmlns:converters="using:SubsonicUWP.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Page.Resources>
+        <converters:LocalCoverArtConverter x:Key="LocalArtCnv"/>
+        <MenuFlyout x:Key="SongMenu">
+            <MenuFlyoutItem Text="Play Next" Click="PlayNext_Click" Tag="{Binding Id}">
+                <MenuFlyoutItem.Icon>
+                    <FontIcon Glyph="&#xE898;"/>
+                    <!-- Upload/Up Arrow -->
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Add to Queue" Click="AddToQueue_Click" Tag="{Binding Id}">
+                <MenuFlyoutItem.Icon>
+                    <FontIcon Glyph="&#xE710;"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Remove" Click="Delete_Click" Tag="{Binding Id}">
+                <MenuFlyoutItem.Icon>
+                    <FontIcon Glyph="&#xE74D;"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+        </MenuFlyout>
+    </Page.Resources>
+
+    <Grid Padding="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Cache Manager" Style="{StaticResource HeaderTextBlockStyle}" Margin="0,0,0,24"/>
+
+        <!-- Storage Viz -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,24">
+            <TextBlock Text="Storage Usage" FontWeight="SemiBold" Margin="0,0,0,8"/>
+            <Border Height="30" CornerRadius="4" Background="#33808080">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" x:Name="UsedColumn"/>
+                        <ColumnDefinition Width="*" x:Name="FreeColumn"/>
+                    </Grid.ColumnDefinitions>
+                    <Rectangle Grid.Column="0" Fill="{ThemeResource SystemControlHighlightAccentBrush}"/>
+                    <!-- Free column is transparent, showing Border background -->
+                </Grid>
+            </Border>
+            <Grid Margin="0,4,0,0">
+                <TextBlock x:Name="UsedText" Text="Calculating..." HorizontalAlignment="Left" FontSize="12" Foreground="Gray"/>
+                <TextBlock x:Name="FreeText" Text="" HorizontalAlignment="Right" FontSize="12" Foreground="Gray"/>
+            </Grid>
+
+            <Button Content="Clear All Cache" Click="ClearAll_Click" Margin="0,12,0,0"/>
+        </StackPanel>
+
+        <!-- Song List -->
+        <ListView x:Name="CachedList" Grid.Row="2" SelectionMode="None" IsItemClickEnabled="True" ItemClick="CachedList_ItemClick" Padding="0,12">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,8" RightTapped="Grid_RightTapped" Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="48"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="48"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Col 0: Image Box -->
+                        <Border Grid.Column="0" Width="48" Height="48" Background="#33808080">
+                            <Image Source="{Binding Id, Converter={StaticResource LocalArtCnv}}" Stretch="UniformToFill"/>
+                        </Border>
+
+                        <!-- Col 1: Text -->
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Artist}" FontSize="12" Opacity="0.7"/>
+                        </StackPanel>
+
+                        <!-- Col 2: Duration -->
+                        <TextBlock Grid.Column="2" Text="{Binding DurationFormatted}" VerticalAlignment="Center" Opacity="0.6" Margin="12,0"/>
+
+                        <!-- Col 3: Delete Button (Far Right) -->
+                        <Button Grid.Column="3" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" Click="Delete_Click" Tag="{Binding Id}" Background="Transparent" BorderThickness="0" VerticalAlignment="Center" HorizontalAlignment="Right" Opacity="0.5"/>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <ProgressRing x:Name="LoadingRing" Grid.Row="2" Width="40" Height="40"/>
+    </Grid>
+</Page>

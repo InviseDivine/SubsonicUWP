@@ -89,9 +89,15 @@ namespace SubsonicUWP
              {
                  foreach (var baseItem in flyout.Items)
                  {
-                     if (baseItem is MenuFlyoutItem mItem && (mItem.Text == "Favorite" || mItem.Text == "Unfavorite"))
+                     if (baseItem is MenuFlyoutItem mItem)
                      {
-                         mItem.Text = item.IsStarred ? "Unfavorite" : "Favorite";
+                         if (mItem.Text == "Favorite" || mItem.Text == "Unfavorite")
+                             mItem.Text = item.IsStarred ? "Unfavorite" : "Favorite";
+                         
+                         if (mItem.Text == "Cache Permanently")
+                         {
+                             mItem.Visibility = SubsonicService.Instance.ManualCacheMode ? Visibility.Visible : Visibility.Collapsed;
+                         }
                      }
                  }
                  Windows.UI.Xaml.Controls.Primitives.FlyoutBase.ShowAttachedFlyout(fe);
@@ -159,11 +165,19 @@ namespace SubsonicUWP
              }
         }
 
-        private async void Download_Click(object sender, RoutedEventArgs e)
+        private async void Export_Click(object sender, RoutedEventArgs e)
         {
              if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
              {
                  await DownloadManager.StartDownload(item);
+             }
+        }
+
+        private async void CachePermanently_Click(object sender, RoutedEventArgs e)
+        {
+             if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+             {
+                 await Services.PlaybackService.Instance.PromoteTransient(item.Id);
              }
         }
     }

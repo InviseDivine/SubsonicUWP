@@ -7,11 +7,12 @@
 
     <Page.Resources>
         <MenuFlyout x:Key="MediaItemMenu">
-            <MenuFlyoutItem Text="Add to current queue"/>
-            <MenuFlyoutItem Text="Add to playlist"/>
-            <MenuFlyoutItem Text="Play next"/>
-            <MenuFlyoutItem Text="Favorite"/>
-            <MenuFlyoutItem Text="Download" Click="Download_Click"/>
+            <MenuFlyoutItem Text="Add to current queue" Click="AddToQueue_Click" Icon="Add"/>
+            <MenuFlyoutItem Text="Add to playlist" Click="AddToPlaylist_Click" Icon="MusicInfo"/>
+            <MenuFlyoutItem Text="Play next" Click="PlayNext_Click" Icon="Upload"/>
+            <MenuFlyoutItem Text="Favorite" Click="Favorite_Click" Icon="Favorite"/>
+            <MenuFlyoutItem Text="Add to cache" Click="AddToCache_Click" Icon="Download"/>
+            <MenuFlyoutItem Text="Export as mp3" Click="Export_Click" Icon="SaveLocal"/>
         </MenuFlyout>
 
         <DataTemplate x:Key="AlbumTemplate">

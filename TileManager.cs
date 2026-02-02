@@ -12,118 +12,137 @@ namespace SubsonicUWP
     {
         private static string _lastTileImageFile = null;
 
-        public static async void UpdateTile(SubsonicItem song)
+        public static void UpdateTile(SubsonicItem song)
         {
-            string localImagePath = "";
-
-            try
+            // Fire and Forget Background Task
+            Task.Run(async () =>
             {
-                // Download image to local folder so Tile Service can access it
-                if (song != null && !string.IsNullOrEmpty(song.ImageUrl))
-                {
-                    using (var client = new HttpClient())
-                    {
-                        var buffer = await client.GetByteArrayAsync(new Uri(song.ImageUrl));
-                        if (buffer.Length > 0)
-                        {
-                            var filename = "tile-" + Guid.NewGuid().ToString() + ".jpg";
-                            var folder = ApplicationData.Current.LocalFolder;
-                            var file = await folder.CreateFileAsync(filename, CreationCollisionOption.ReplaceExisting);
-                            await FileIO.WriteBytesAsync(file, buffer);
-                            localImagePath = "ms-appdata:///local/" + filename;
+                string localImagePath = "";
 
-                            // Clean up old file
-                            if (!string.IsNullOrEmpty(_lastTileImageFile))
+                try
+                {
+                    // Download image to local folder so Tile Service can access it
+                    if (song != null)
+                    {
+                        // 1. Try Offline Cache Sidecar
+                        try 
+                        {
+                            var cacheFolder = await ApplicationData.Current.TemporaryFolder.GetFolderAsync("Cache");
+                            if (await cacheFolder.TryGetItemAsync($"stream_{song.Id}.jpg") != null)
                             {
-                                try 
-                                { 
-                                    var oldFile = await folder.GetFileAsync(_lastTileImageFile);
-                                    await oldFile.DeleteAsync();
-                                } 
-                                catch {}
+                                 localImagePath = $"ms-appdata:///temp/Cache/stream_{song.Id}.jpg";
                             }
-                            _lastTileImageFile = filename;
+                        }
+                        catch { }
+
+                        // 2. Fallback to Download
+                        if (string.IsNullOrEmpty(localImagePath) && !string.IsNullOrEmpty(song.ImageUrl))
+                        {
+                            using (var client = new HttpClient())
+                            {
+                                var buffer = await client.GetByteArrayAsync(new Uri(song.ImageUrl));
+                                if (buffer.Length > 0)
+                                {
+                                    var filename = "tile-" + Guid.NewGuid().ToString() + ".jpg";
+                                    var folder = ApplicationData.Current.LocalFolder;
+                                    var file = await folder.CreateFileAsync(filename, CreationCollisionOption.ReplaceExisting);
+                                    await FileIO.WriteBytesAsync(file, buffer);
+                                    localImagePath = "ms-appdata:///local/" + filename;
+
+                                    // Clean up old file
+                                    if (!string.IsNullOrEmpty(_lastTileImageFile))
+                                    {
+                                        try 
+                                        { 
+                                            var oldFile = await folder.GetFileAsync(_lastTileImageFile);
+                                            await oldFile.DeleteAsync();
+                                        } 
+                                        catch {}
+                                    }
+                                    _lastTileImageFile = filename;
+                                }
+                            }
                         }
                     }
                 }
-            }
-            catch 
-            {
-                // Fallback to no image
-            }
-
-            try
-            {
-                string xml = "";
-                string title = song != null ? SecurityElement.Escape(song.Title) : "";
-                string artist = song != null ? SecurityElement.Escape(song.Artist) : "";
-                string album = song != null ? SecurityElement.Escape(song.Album) : "";
-
-                if (!string.IsNullOrEmpty(localImagePath))
+                catch 
                 {
-                    // Image + Text (Classic Templates)
-                    xml = $@"
-                    <tile>
-                      <visual version='2'>
-                        <binding template='TileMedium' branding='name'>
-                          <image src='{localImagePath}' placement='background'/>
-                          <text hint-style='caption'>{title}</text>
-                          <text hint-style='captionSubtle'>{artist}</text>
-                        </binding>
-                        <binding template='TileWide' branding='name'>
-                          <image src='{localImagePath}' placement='background'/>
-                          <text hint-style='base'>{title}</text>
-                          <text hint-style='captionSubtle'>{artist}</text>
-                          <text hint-style='captionSubtle'>{album}</text>
-                        </binding>
-                        <binding template='TileLarge' branding='name'>
-                          <image src='{localImagePath}' placement='background'/>
-                          <text hint-style='base'>{title}</text>
-                          <text hint-style='captionSubtle'>{artist}</text>
-                          <text hint-style='captionSubtle'>{album}</text>
-                        </binding>
-                      </visual>
-                    </tile>";
-                }
-                else
-                {
-                    // Text Only (Classic Templates)
-                    xml = $@"
-                    <tile>
-                      <visual version='2'>
-                        <binding template='TileMedium' branding='name'>
-                          <text hint-style='caption'>{title}</text>
-                          <text hint-style='captionSubtle'>{artist}</text>
-                        </binding>
-                        <binding template='TileWide' branding='name'>
-                          <text hint-style='base'>{title}</text>
-                          <text hint-style='captionSubtle'>{artist}</text>
-                          <text hint-style='captionSubtle'>{album}</text>
-                        </binding>
-                        <binding template='TileLarge' branding='name'>
-                          <text hint-style='base'>{title}</text>
-                          <text hint-style='captionSubtle'>{artist}</text>
-                          <text hint-style='captionSubtle'>{album}</text>
-                        </binding>
-                      </visual>
-                    </tile>";
+                    // Fallback to no image
                 }
 
-                var doc = new XmlDocument();
-                doc.LoadXml(xml);
+                try
+                {
+                    string xml = "";
+                    string title = song != null ? SecurityElement.Escape(song.Title) : "";
+                    string artist = song != null ? SecurityElement.Escape(song.Artist) : "";
+                    string album = song != null ? SecurityElement.Escape(song.Album) : "";
 
-                var updater = TileUpdateManager.CreateTileUpdaterForApplication();
-                updater.EnableNotificationQueue(true);
-                updater.Clear(); // Force clear to ensure update triggers
-                
-                var notification = new TileNotification(doc);
-                notification.Tag = "nowplaying"; 
-                updater.Update(notification);
-            }
-            catch (Exception)
-            {
-                // Silent fail in production
-            }
+                    if (!string.IsNullOrEmpty(localImagePath))
+                    {
+                        // Image + Text (Classic Templates)
+                        xml = $@"
+                        <tile>
+                          <visual version='2'>
+                            <binding template='TileMedium' branding='name'>
+                              <image src='{localImagePath}' placement='background'/>
+                              <text hint-style='caption'>{title}</text>
+                              <text hint-style='captionSubtle'>{artist}</text>
+                            </binding>
+                            <binding template='TileWide' branding='name'>
+                              <image src='{localImagePath}' placement='background'/>
+                              <text hint-style='base'>{title}</text>
+                              <text hint-style='captionSubtle'>{artist}</text>
+                              <text hint-style='captionSubtle'>{album}</text>
+                            </binding>
+                            <binding template='TileLarge' branding='name'>
+                              <image src='{localImagePath}' placement='background'/>
+                              <text hint-style='base'>{title}</text>
+                              <text hint-style='captionSubtle'>{artist}</text>
+                              <text hint-style='captionSubtle'>{album}</text>
+                            </binding>
+                          </visual>
+                        </tile>";
+                    }
+                    else
+                    {
+                        // Text Only (Classic Templates)
+                        xml = $@"
+                        <tile>
+                          <visual version='2'>
+                            <binding template='TileMedium' branding='name'>
+                              <text hint-style='caption'>{title}</text>
+                              <text hint-style='captionSubtle'>{artist}</text>
+                            </binding>
+                            <binding template='TileWide' branding='name'>
+                              <text hint-style='base'>{title}</text>
+                              <text hint-style='captionSubtle'>{artist}</text>
+                              <text hint-style='captionSubtle'>{album}</text>
+                            </binding>
+                            <binding template='TileLarge' branding='name'>
+                              <text hint-style='base'>{title}</text>
+                              <text hint-style='captionSubtle'>{artist}</text>
+                              <text hint-style='captionSubtle'>{album}</text>
+                            </binding>
+                          </visual>
+                        </tile>";
+                    }
+
+                    var doc = new XmlDocument();
+                    doc.LoadXml(xml);
+
+                    var updater = TileUpdateManager.CreateTileUpdaterForApplication();
+                    updater.EnableNotificationQueue(true);
+                    
+                    var notification = new TileNotification(doc);
+                    notification.Tag = "nowplaying"; 
+                    updater.Clear(); // Clear previous notifications (Idle tiles or old songs) to prevent cycling
+                    updater.Update(notification);
+                }
+                catch (Exception)
+                {
+                    // Silent fail in production
+                }
+            });
         }
 
         public static async Task PrepareIdleCache()

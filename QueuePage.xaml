@@ -7,12 +7,36 @@
 
     <Page.Resources>
         <MenuFlyout x:Key="QueueItemMenu">
-            <MenuFlyoutItem Text="Play now" Click="PlayNow_Click"/>
-            <MenuFlyoutItem Text="Play next" Click="PlayNext_Click"/>
-            <MenuFlyoutItem Text="Remove from queue" Click="Remove_Click"/>
-            <MenuFlyoutItem Text="Add to playlist" Click="AddToPlaylist_Click"/>
-            <MenuFlyoutItem Text="Favorite" Click="Favorite_Click"/>
-            <MenuFlyoutItem Text="Download" Click="Download_Click"/>
+            <MenuFlyoutItem Text="Play now" Click="PlayNow_Click">
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Play"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Play next" Click="PlayNext_Click">
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Upload"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Remove from queue" Click="Remove_Click">
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Remove"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Add to playlist" Click="AddToPlaylist_Click">
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Add"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Favorite" Click="Favorite_Click">
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="OutlineStar"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem Text="Download" Click="Download_Click">
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Download"/>
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
         </MenuFlyout>
     </Page.Resources>
 

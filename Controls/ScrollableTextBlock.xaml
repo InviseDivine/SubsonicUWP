@@ -1,0 +1,22 @@
+<UserControl x:Class="SubsonicUWP.Controls.ScrollableTextBlock"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" d:DesignHeight="30" d:DesignWidth="200">
+
+    <Grid x:Name="ContainerGrid" Background="Transparent" SizeChanged="ContainerGrid_SizeChanged">
+        <!-- Placeholder to prop open Height/Width (clipped by parent) -->
+        <TextBlock x:Name="Placeholder" Opacity="0" TextTrimming="Clip" TextWrapping="NoWrap" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+
+        <!-- Canvas allows TextElement to render fully without being constrained by 'Arrange' -->
+        <Canvas VerticalAlignment="Center" HorizontalAlignment="Left">
+            <TextBlock x:Name="TextElement" TextTrimming="None" TextWrapping="NoWrap" Canvas.Top="0" Canvas.Left="0">
+                <TextBlock.RenderTransform>
+                    <TranslateTransform x:Name="TextTransform" X="0"/>
+                </TextBlock.RenderTransform>
+            </TextBlock>
+        </Canvas>
+        <!-- Interaction Overlay -->
+        <Border Background="Transparent" IsHitTestVisible="True"/>
+    </Grid>
+</UserControl>

@@ -23,6 +23,8 @@
                         </Grid>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                             <Button x:Name="PlayAllButton" Content="Play All" Click="PlayAll_Click" Margin="0,0,12,0"/>
+                            <Button x:Name="AddToCacheAllButton" Content="Add to Cache" Click="AddToCacheAll_Click" Margin="0,0,12,0"/>
+                            <Button x:Name="ExportAllButton" Content="Export All" Click="ExportAll_Click" Margin="0,0,12,0"/>
                             <Button x:Name="SaveOrderButton" Content="Save Order" Click="SaveOrder_Click" Opacity="0.7" Visibility="Collapsed"/>
                             <Button x:Name="SaveAsPlaylistButton" Content="Save as Playlist" Click="SaveAsPlaylist_Click" Opacity="0.7" Visibility="Collapsed"/>
                         </StackPanel>
@@ -36,7 +38,37 @@
             </ListView.ItemContainerStyle>
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Margin="0,8">
+                    <Grid Margin="0,8" RightTapped="Grid_RightTapped" Background="Transparent">
+                        <Grid.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="Play Next" Click="PlayNext_Click" Tag="{Binding Id}">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE768;"/>
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Add to Queue" Click="AddToQueue_Click" Tag="{Binding Id}">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE710;"/>
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Remove" Click="Remove_Click" Tag="{Binding Id}">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE74D;"/>
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Add to cache" Click="AddToCache_Click" Tag="{Binding Id}">
+                                    <MenuFlyoutItem.Icon>
+                                        <SymbolIcon Symbol="Download"/>
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Export as mp3" Click="Export_Click" Tag="{Binding Id}">
+                                    <MenuFlyoutItem.Icon>
+                                        <SymbolIcon Symbol="SaveLocal"/>
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </Grid.ContextFlyout>
+
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="48"/>
                             <ColumnDefinition Width="*"/>
@@ -49,7 +81,7 @@
                             <TextBlock Text="{Binding Artist}" Opacity="0.7" FontSize="12"/>
                         </StackPanel>
                         <TextBlock Grid.Column="2" Text="{Binding DurationFormatted}" VerticalAlignment="Center" Opacity="0.6" Margin="12,0"/>
-                        <TextBlock Grid.Column="3" Text="&#xE700;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" HorizontalAlignment="Right" Opacity="0.3"/>
+                        <Button Grid.Column="3" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" Click="Remove_Click" Background="Transparent" BorderThickness="0" Padding="0" Opacity="0.5" ToolTipService.ToolTip="Remove from Playlist" Tag="{Binding Id}"/>
                     </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>

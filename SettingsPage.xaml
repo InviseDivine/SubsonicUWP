@@ -26,6 +26,32 @@
                     <ComboBoxItem Content="AMOLED (True Black)" Tag="AMOLED"/>
                 </ComboBox>
 
+                <TextBlock Text="Playback" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                <ComboBox x:Name="BitrateBox" Header="Max Bitrate" SelectionChanged="BitrateBox_SelectionChanged" Margin="0,0,0,12" Width="200">
+                    <ComboBoxItem Content="128 kbps" Tag="128"/>
+                    <ComboBoxItem Content="192 kbps" Tag="192"/>
+                    <ComboBoxItem Content="320 kbps" Tag="320"/>
+                    <ComboBoxItem Content="Unlimited (Default)" Tag="0"/>
+                </ComboBox>
+
+                <ToggleSwitch x:Name="SystemBufferingSwitch" Header="System Managed Buffering (Fix Stutter)" OffContent="Use Custom Buffer" OnContent="Direct URL Playback" IsOn="False" Margin="0,0,0,12" Toggled="SystemBufferingSwitch_Toggled"/>
+                <ToggleSwitch x:Name="ForceCachingSwitch" Header="Force Offline Caching" OffContent="Disabled" OnContent="Download in Background" Margin="0,0,0,12" Toggled="ForceCachingSwitch_Toggled"/>
+
+                <ToggleSwitch x:Name="AggressiveCachingSwitch" Header="Aggressive Caching" OffContent="Stream Immediate" OnContent="Wait for Full Download" Margin="0,0,0,12" Toggled="AggressiveCachingSwitch_Toggled"/>
+                <ToggleSwitch x:Name="RamDoubleBufferingSwitch" Header="RAM Double-Buffering (Debug)" OffContent="Disabled" OnContent="Enabled (Fixes Stutter)" Margin="0,0,0,24" Toggled="RamDoubleBufferingSwitch_Toggled"/>
+
+                <TextBlock Text="Offline Cache" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                <ComboBox x:Name="CacheSizeBox" Header="Max Cache Size" SelectionChanged="CacheSizeBox_SelectionChanged" Margin="0,0,0,24" Width="200">
+                    <ComboBoxItem Content="No Cache" Tag="0"/>
+                    <ComboBoxItem Content="100 MB" Tag="100"/>
+                    <ComboBoxItem Content="500 MB" Tag="500"/>
+                    <ComboBoxItem Content="1 GB" Tag="1024"/>
+                    <ComboBoxItem Content="3 GB" Tag="3072"/>
+                    <ComboBoxItem Content="5 GB" Tag="5120"/>
+                    <ComboBoxItem Content="8 GB" Tag="8192"/>
+                    <ComboBoxItem Content="Unlimited" Tag="1000000"/>
+                </ComboBox>
+
                 <TextBlock Text="Pinned Albums (Idle Tile)" FontSize="20" FontWeight="SemiBold" Margin="0,24,0,12"/>
                 <ToggleSwitch x:Name="MixRandomSwitch" Header="Mix with Random Albums" OffContent="Only use pinned" OnContent="Always mix random albums" Margin="0,0,0,12" Toggled="MixRandomSwitch_Toggled"/>
                 <ListView x:Name="PinnedAlbumsList" ScrollViewer.VerticalScrollMode="Disabled" Margin="0,0,0,24">

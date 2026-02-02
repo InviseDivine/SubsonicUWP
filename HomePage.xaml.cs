@@ -254,7 +254,15 @@ namespace SubsonicUWP
              }
         }
 
-        private async void Download_Click(object sender, RoutedEventArgs e)
+        private void AddToCache_Click(object sender, RoutedEventArgs e)
+        {
+             if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+             {
+                 Services.PlaybackService.Instance.EnqueueDownload(item);
+             }
+        }
+
+        private async void Export_Click(object sender, RoutedEventArgs e)
         {
              if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
              {

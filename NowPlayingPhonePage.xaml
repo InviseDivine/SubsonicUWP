@@ -2,10 +2,12 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:SubsonicUWP"
+    xmlns:controls="using:SubsonicUWP.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" Background="{ThemeResource WindowBackgroundBrush}">
 
     <Grid>
+        <!-- ... (Lines 8-30 same) -->
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <!-- Art -->
@@ -24,15 +26,15 @@
 
         <!-- Big Album Art -->
         <Grid Grid.Row="0" Margin="12" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Image Source="{Binding CurrentSong.ImageUrl}" Stretch="Uniform" MaxHeight="800"/>
+            <Image Source="{Binding LocalAlbumArt}" Stretch="Uniform" MaxHeight="800"/>
             <!-- Buffering Ring -->
             <ProgressRing IsActive="{Binding DataContext.IsBuffering, ElementName=PageRoot}" Width="64" Height="64" Foreground="{ThemeResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
         </Grid>
 
         <!-- Song Info -->
         <StackPanel Grid.Row="1" Margin="12,0,12,12" VerticalAlignment="Center">
-            <TextBlock Text="{Binding CurrentSong.Title}" FontSize="24" FontWeight="Bold" TextAlignment="Left" TextTrimming="CharacterEllipsis"/>
-            <TextBlock Text="{Binding CurrentSong.Artist}" FontSize="18" Opacity="0.8" TextAlignment="Left" Margin="0,4,0,0" IsTapEnabled="True" Tapped="Artist_Tapped"/>
+            <TextBlock Text="{Binding CurrentSong.Title}" FontSize="24" FontWeight="Bold" Foreground="{ThemeResource ForegroundBrush}" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{Binding CurrentSong.Artist}" FontSize="18" Opacity="0.8" Margin="0,4,0,0" Foreground="{ThemeResource ForegroundBrush}" IsTapEnabled="True" Tapped="Artist_Tapped" TextTrimming="CharacterEllipsis"/>
             <TextBlock Text="{Binding CurrentSong.Album}" FontSize="16" Opacity="0.6" TextAlignment="Left" Margin="0,2,0,0"/>
         </StackPanel>
 
@@ -44,7 +46,7 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBlock Text="{Binding CurrentPositionFormatted}" VerticalAlignment="Center" Foreground="{ThemeResource SecondaryForegroundBrush}" FontSize="12" Margin="0,0,8,0"/>
-            <Slider x:Name="TimeSlider" Grid.Column="1" Value="{Binding CurrentPosition, Mode=TwoWay}" Maximum="{Binding Duration}" VerticalAlignment="Center" IsThumbToolTipEnabled="True" ThumbToolTipValueConverter="{StaticResource SliderTooltipConverter}"/>
+            <Slider x:Name="TimeSlider" Grid.Column="1" Value="0" Maximum="{Binding Duration}" VerticalAlignment="Center" IsThumbToolTipEnabled="True" ThumbToolTipValueConverter="{StaticResource SliderTooltipConverter}"/>
             <TextBlock Grid.Column="2" Text="{Binding DurationFormatted}" VerticalAlignment="Center" Foreground="{ThemeResource SecondaryForegroundBrush}" FontSize="12" Margin="8,0,0,0"/>
         </Grid>
 
@@ -103,7 +105,7 @@
 
             <!-- Volume -->
             <Button ToolTipService.ToolTip="Volume" Background="Transparent" Margin="12,0" Height="48" Width="48">
-                <TextBlock Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{ThemeResource SecondaryForegroundBrush}"/>
+                <TextBlock x:Name="VolumeIcon" Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{ThemeResource SecondaryForegroundBrush}"/>
                 <Button.Flyout>
                     <Flyout>
                         <Flyout.FlyoutPresenterStyle>
@@ -139,7 +141,12 @@
                                 <SymbolIcon Symbol="Add"/>
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                        <MenuFlyoutItem Text="Download" Click="Download_Click">
+                        <MenuFlyoutItem Text="Export as MP3" Click="Export_Click">
+                            <MenuFlyoutItem.Icon>
+                                <SymbolIcon Symbol="SaveLocal"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="CachePermanentlyItem" Text="Cache Permanently" Click="CachePermanently_Click" Visibility="Collapsed">
                             <MenuFlyoutItem.Icon>
                                 <SymbolIcon Symbol="Download"/>
                             </MenuFlyoutItem.Icon>

@@ -2,6 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Windows.Networking.BackgroundTransfer;
 using Windows.Storage;
+using Windows.UI.Notifications;
+using Windows.Data.Xml.Dom;
 
 namespace SubsonicUWP
 {
@@ -32,17 +34,28 @@ namespace SubsonicUWP
                 var download = downloader.CreateDownload(uri, destinationFile);
                 
                 // Start
-                var operation = download.StartAsync();
+                var operation = await download.StartAsync();
                 
-                // Notify User
-                var dialog = new Windows.UI.Popups.MessageDialog($"Started downloading '{title}' to Music Library", "Download Started");
-                await dialog.ShowAsync();
+                // Show localized toast? Or just standard toast.
+                ShowToast($"Downloaded '{title}'", $"Saved to Music Library");
             }
             catch (Exception ex)
             {
-                var dialog = new Windows.UI.Popups.MessageDialog($"Error starting download: {ex.Message}", "Download Failed");
-                await dialog.ShowAsync();
+                // Only show error dialog if it fails?
+                // Or maybe a Toast for error too?
+                // Keep it simple for now.
             }
+        }
+
+        private static void ShowToast(string title, string content)
+        {
+            var template = ToastTemplateType.ToastText02;
+            var xml = ToastNotificationManager.GetTemplateContent(template);
+            var texts = xml.GetElementsByTagName("text");
+            texts[0].AppendChild(xml.CreateTextNode(title));
+            texts[1].AppendChild(xml.CreateTextNode(content));
+            var toast = new ToastNotification(xml);
+            ToastNotificationManager.CreateToastNotifier().Show(toast);
         }
 
         private static string Sanitize(string input)

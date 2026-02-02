@@ -12,7 +12,8 @@
             <MenuFlyoutItem Text="Remove from queue" Click="Remove_Click"/>
             <MenuFlyoutItem Text="Add to playlist" Click="AddToPlaylist_Click"/>
             <MenuFlyoutItem Text="Favorite" Click="Favorite_Click"/>
-            <MenuFlyoutItem Text="Download" Click="Download_Click"/>
+            <MenuFlyoutItem Text="Export as MP3" Click="Export_Click"/>
+            <MenuFlyoutItem x:Name="CachePermanentlyItem" Text="Cache Permanently" Click="CachePermanently_Click" Visibility="Collapsed"/>
         </MenuFlyout>
     </Page.Resources>
 
@@ -37,7 +38,8 @@
             </Grid.RowDefinitions>
 
             <!-- Art -->
-            <Image Source="{Binding CurrentSong.ImageUrl}" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="500" MaxHeight="500"/>
+            <!-- Art -->
+            <Image Source="{Binding LocalAlbumArt}" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="500" MaxHeight="500"/>
 
             <!-- Info -->
             <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,32,0,0">

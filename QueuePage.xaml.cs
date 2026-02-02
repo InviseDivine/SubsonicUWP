@@ -41,8 +41,48 @@ namespace SubsonicUWP
                         catch { }
                      });
                  }
+                 mp.PropertyChanged += MainPage_PropertyChanged;
              }
              base.OnNavigatedTo(e);
+        }
+
+        protected override void OnNavigatedFrom(Windows.UI.Xaml.Navigation.NavigationEventArgs e)
+        {
+             base.OnNavigatedFrom(e);
+             var mp = (Windows.UI.Xaml.Window.Current.Content as Frame)?.Content as MainPage;
+             if (mp != null)
+             {
+                 mp.PropertyChanged -= MainPage_PropertyChanged;
+             }
+        }
+
+        private void MainPage_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+             if (e.PropertyName == "CurrentQueueIndex")
+             {
+                 ScrollToCurrent();
+             }
+        }
+
+        private void ScrollToCurrent()
+        {
+             var mp = (Windows.UI.Xaml.Window.Current.Content as Frame)?.Content as MainPage;
+             if (mp != null && mp.CurrentQueueIndex >= 0 && mp.CurrentQueueIndex < mp.PlaybackQueue.Count)
+             {
+                 var item = mp.PlaybackQueue[mp.CurrentQueueIndex];
+                 _ = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+                 {
+                    try
+                    {
+                        // await Task.Delay(100); // Small delay not strictly needed if list is populated, but safer
+                        if (QueueList.Items.Count > 0 && mp.PlaybackQueue.Contains(item))
+                        {
+                            QueueList.ScrollIntoView(item, ScrollIntoViewAlignment.Leading);
+                        }
+                    }
+                    catch { }
+                 });
+             }
         }
 
         private void Clear_Click(object sender, RoutedEventArgs e)

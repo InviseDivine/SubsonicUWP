@@ -5,9 +5,14 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.Media;
 using Windows.Media.Playback;
-using Windows.Foundation.Collections; // For ValueSet
+using Windows.Foundation.Collections; 
 using Windows.UI.Xaml.Media.Animation;
 using System.Linq;
+using System.IO;
+using System.Threading.Tasks; // Added
+using SubsonicUWP.Services; // Added
+using Windows.UI.Xaml.Media.Imaging; // Added for BitmapImage
+using System.Collections.Specialized; // Added for CollectionChanged
 
 namespace SubsonicUWP
 {
@@ -32,11 +37,106 @@ namespace SubsonicUWP
                 if (_currentSong != null) _currentSong.IsPlaying = true;
                 OnPropertyChanged("CurrentSong"); 
                 UpdateFavoriteIcon();
-                if (_currentSong != null)
+                UpdateLocalAlbumArt(); // Trigger Art Update
+                UpdateLocalAlbumArt(); // Trigger Art Update
+                // REMOVED: TileManager.UpdateTile(_currentSong); 
+                // Only update tile when PlayTrack triggers active playback, not on restoration.
+            }
+        }
+
+        private ImageSource _localAlbumArt;
+        public ImageSource LocalAlbumArt
+        {
+            get => _localAlbumArt;
+            set
+            {
+                _localAlbumArt = value;
+                OnPropertyChanged("LocalAlbumArt");
+            }
+        }
+
+        private async void UpdateLocalAlbumArt()
+        {
+            if (CurrentSong == null)
+            {
+                LocalAlbumArt = null;
+                return;
+            }
+
+            // Capture ID to prevent race conditions during retry loop
+            string processingId = CurrentSong.Id;
+            string url = CurrentSong.ImageUrl;
+
+            // 1. Try Cache
+            try
+            {
+                var folder = await Windows.Storage.ApplicationData.Current.TemporaryFolder.CreateFolderAsync("Cache", Windows.Storage.CreationCollisionOption.OpenIfExists);
+                var file = await folder.TryGetItemAsync($"stream_{processingId}.jpg") as Windows.Storage.StorageFile;
+                if (file != null)
                 {
-                    TileManager.UpdateTile(_currentSong); 
+                    var bmp = new BitmapImage();
+                    using (var stream = await file.OpenAsync(Windows.Storage.FileAccessMode.Read))
+                    {
+                        await bmp.SetSourceAsync(stream);
+                    }
+                    if (CurrentSong?.Id == processingId) LocalAlbumArt = bmp;
+                    return;
                 }
             }
+            catch { }
+
+            // 2. Fallback: Download with Retry
+            if (!string.IsNullOrEmpty(url))
+            {
+                // Reset to placeholder/null while loading
+                if (CurrentSong?.Id == processingId) LocalAlbumArt = null;
+
+                int retry = 0;
+                while (retry < 3)
+                {
+                    try
+                    {
+                        using (var client = new System.Net.Http.HttpClient())
+                        {
+                            var bytes = await client.GetByteArrayAsync(new Uri(url));
+                            if (bytes.Length > 0)
+                            {
+                                // A. Cache It (Fire and forget)
+                                _ = Task.Run(async () => 
+                                {
+                                    try 
+                                    {
+                                        var folder = await Windows.Storage.ApplicationData.Current.TemporaryFolder.CreateFolderAsync("Cache", Windows.Storage.CreationCollisionOption.OpenIfExists);
+                                        var file = await folder.CreateFileAsync($"stream_{processingId}.jpg", Windows.Storage.CreationCollisionOption.ReplaceExisting);
+                                        await Windows.Storage.FileIO.WriteBytesAsync(file, bytes);
+                                    } 
+                                    catch {}
+                                });
+
+                                // B. Display It
+                                if (CurrentSong?.Id == processingId)
+                                {
+                                    var bmp = new BitmapImage();
+                                    using (var ms = new System.IO.MemoryStream(bytes))
+                                    {
+                                        await bmp.SetSourceAsync(ms.AsRandomAccessStream());
+                                    }
+                                    LocalAlbumArt = bmp;
+                                }
+                                return; // Success
+                            }
+                        }
+                    }
+                    catch 
+                    {
+                        retry++;
+                        if (retry < 3) await Task.Delay(500 * retry); // Backoff 0.5s, 1s
+                    }
+                }
+            }
+            
+            // Final Fallback if everything failed: null (Placeholder)
+            if (CurrentSong?.Id == processingId) LocalAlbumArt = null;
         }
 
         public System.Collections.ObjectModel.ObservableCollection<NavItem> NavItems { get; set; }
@@ -53,22 +153,47 @@ namespace SubsonicUWP
                  OnPropertyChanged("CurrentPosition");
                  OnPropertyChanged("CurrentPositionFormatted");
 
-                 if (!_isDragging && Math.Abs(oldValue - value) > 1)
+                 if (!_isDragging && !_isUpdatingFromTimer && Math.Abs(oldValue - value) > 1)
                  {
-                     if (GlobalMediaElement != null) GlobalMediaElement.Position = TimeSpan.FromSeconds(value);
+                     if (Services.PlaybackService.Instance.Player.PlaybackSession.CanSeek)
+                        Services.PlaybackService.Instance.Player.PlaybackSession.Position = TimeSpan.FromSeconds(value);
                  }
              }
         }
-        public string CurrentPositionFormatted => TimeSpan.FromSeconds(_currentPosition).ToString(@"mm\:ss");
+        public string CurrentPositionFormatted 
+        {
+            get
+            {
+                if (double.IsNaN(_currentPosition) || double.IsInfinity(_currentPosition) || _currentPosition < 0 || _currentPosition > TimeSpan.MaxValue.TotalSeconds)
+                {
+                    return "--:--";
+                }
+                return TimeSpan.FromSeconds(_currentPosition).ToString(@"mm\:ss");
+            }
+        }
 
         public void Seek(double seconds)
         {
-            if (GlobalMediaElement != null) GlobalMediaElement.Position = TimeSpan.FromSeconds(seconds);
+            if (Services.PlaybackService.Instance.Player.PlaybackSession.CanSeek)
+            {
+                Services.PlaybackService.Instance.Player.PlaybackSession.Position = TimeSpan.FromSeconds(seconds);
+                UpdateSmtcTimeline(); 
+            }
             // Ensure CurrentPosition matches, though visual update surely happened via Drag
             _currentPosition = seconds;
             OnPropertyChanged("CurrentPosition");
             OnPropertyChanged("CurrentPositionFormatted");
         }
+
+        private bool _isDragging = false;
+        public bool IsDragging => _isDragging; // Expose read-only for external checks
+
+        public void SetDragging(bool dragging)
+        {
+             _isDragging = dragging;
+        }
+
+        private bool _isUpdatingFromTimer = false;
 
         private double _duration;
         public double Duration
@@ -81,7 +206,17 @@ namespace SubsonicUWP
                  OnPropertyChanged("DurationFormatted");
              }
         }
-        public string DurationFormatted => TimeSpan.FromSeconds(_duration).ToString(@"mm\:ss");
+        public string DurationFormatted 
+        {
+            get
+            {
+                if (double.IsNaN(_duration) || double.IsInfinity(_duration) || _duration < 0 || _duration > TimeSpan.MaxValue.TotalSeconds)
+                {
+                    return "--:--"; 
+                }
+                return TimeSpan.FromSeconds(_duration).ToString(@"mm\:ss");
+            }
+        }
 
         private DispatcherTimer _timer;
         private DispatcherTimer _retryTimer;
@@ -132,7 +267,56 @@ namespace SubsonicUWP
             _timer.Tick += Timer_Tick;
             _timer.Start();
 
+            // Subscribe to Preload Event
+            Services.PlaybackService.Instance.DownloadCompleted += OnDownloadCompleted;
+            
+            // Initialize RAM Double Buffering Setting
+            var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
+            if (settings.ContainsKey("RamDoubleBuffering"))
+            {
+                Services.PlaybackService.Instance.IsRamDoubleBufferingEnabled = (bool)settings["RamDoubleBuffering"];
+            }
+
             InitSMTC();
+
+            // Subscribe to Service Events
+            Services.PlaybackService.Instance.AddToQueueRequested += (s, item) => 
+            {
+               _ = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => AddToQueue(item));
+            };
+            Services.PlaybackService.Instance.PlayNextRequested += (s, item) =>
+            {
+               _ = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => 
+               {
+                   if (item == null) return;
+                   if (PlaybackQueue.Count == 0) 
+                   {
+                       AddToQueue(item);
+                       return;
+                   }
+                   
+                   int targetIndex = CurrentQueueIndex + 1;
+                   if (targetIndex > PlaybackQueue.Count) targetIndex = PlaybackQueue.Count;
+                   
+                   PlaybackQueue.Insert(targetIndex, item);
+                   // Retrieve deduplication set check if needed?
+                   if (_queueLoadedIds != null) _queueLoadedIds.Add(item.Id);
+                   
+                   // Retrigger Preload since the "Next" song just changed
+                   AttemptPreloadNext(CurrentSong?.Id);
+                   
+                   // Toast or visual feedback?
+               });
+            };
+            Services.PlaybackService.Instance.PlayTracksRequested += (s, args) =>
+            {
+               _ = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => 
+               {
+                   if (args.Item1 == null || args.Item1.Count == 0) return;
+                   var startItem = (args.Item2 >= 0 && args.Item2 < args.Item1.Count) ? args.Item1[args.Item2] : args.Item1.First();
+                   PlayTrackList(args.Item1, startItem, "Now Playing");
+               });
+            };
 
             // this.Loaded += (s, e) => {
             //     GlobalMediaElement.MediaOpened += GlobalMediaElement_MediaOpened;
@@ -150,6 +334,7 @@ namespace SubsonicUWP
                 new NavItem { Label = "Queues", Symbol = "\uE81C", Tag = "Sessions", DestPage = typeof(SessionsPage) },
                 new NavItem { Label = "Artists", Symbol = "\uE77B", Tag = "Artists", DestPage = typeof(ArtistsPage) },
                 new NavItem { Label = "Albums", Symbol = "\uE93C", Tag = "Albums", DestPage = typeof(AlbumsPage) },
+                new NavItem { Label = "Offline / Cache", Symbol = "\uE896", Tag = "Cache", DestPage = typeof(CacheManagerPage) },
                 new NavItem { Label = "Settings", Symbol = "\uE713", Tag = "Settings", DestPage = typeof(SettingsPage) },
             };
             this.DataContext = this;
@@ -234,10 +419,7 @@ namespace SubsonicUWP
             try 
             {
                 var session = await SessionManager.LoadCurrentState();
-            if (session != null && session.Tracks.Count > 0)
-            if (session != null)
-            {
-                if (session.Tracks != null)
+                if (session != null && session.Tracks != null && session.Tracks.Count > 0)
                 {
                     PlaybackQueue.Clear();
                     foreach (var t in session.Tracks) PlaybackQueue.Add(t);
@@ -252,13 +434,19 @@ namespace SubsonicUWP
                     {
                         CurrentQueueIndex = session.CurrentIndex;
                         CurrentSong = PlaybackQueue[CurrentQueueIndex];
-                        // Don't auto play on restore, just set source
-                        var url = SubsonicService.Instance.GetStreamUrl(CurrentSong.Id);
-                        GlobalMediaElement.Source = new Uri(url);
-                        GlobalMediaElement.Position = session.Position;
+                        
+                        // Robust Load (Cache-aware)
+                        await LoadSong(CurrentSong, false);
+                        
+                        // Robust Load (Cache-aware)
+                        await LoadSong(CurrentSong, false);
+                        
+                        var player = Services.PlaybackService.Instance.Player;
+                        if (player.PlaybackSession.CanSeek) player.PlaybackSession.Position = session.Position;
+                        // Paused by default
+                        // Paused by default
                         // Paused by default
                     }
-                }
                 
                 QueueName = session.Name;
                 _currentQueueIndex = session.CurrentIndex; // Use backing field
@@ -272,10 +460,11 @@ namespace SubsonicUWP
                     CurrentSong = song;
                     var uri = new Uri(song.StreamUrl);
                     
-                    GlobalMediaElement.AutoPlay = false; // Ensure we don't auto-start on restore
+                    Services.PlaybackService.Instance.Player.AutoPlay = false; // Ensure we don't auto-start on restore
                     if (session.Position.TotalSeconds > 0)
                     {
-                        GlobalMediaElement.Position = session.Position;
+                        var p = Services.PlaybackService.Instance.Player;
+                        if (p.PlaybackSession.CanSeek) p.PlaybackSession.Position = session.Position;
                     }
 
                     // Force SMTC Active
@@ -327,17 +516,18 @@ namespace SubsonicUWP
                      }
                 }
             }
-            
-            if (Windows.Storage.ApplicationData.Current.LocalSettings.Values.TryGetValue("Volume", out object vol))
-            {
-                if (GlobalMediaElement != null) GlobalMediaElement.Volume = (double)vol;
-                if (VolumeSlider != null) VolumeSlider.Value = (double)vol;
-                OnPropertyChanged("VolumeDisplay");
-            }
             }
             finally
             {
                 _isRestoring = false;
+            }
+
+            if (Windows.Storage.ApplicationData.Current.LocalSettings.Values.ContainsKey("Volume"))
+            {
+                object vol = Windows.Storage.ApplicationData.Current.LocalSettings.Values["Volume"];
+                Services.PlaybackService.Instance.Player.Volume = (double)vol;
+                if (VolumeSlider != null) VolumeSlider.Value = (double)vol;
+                OnPropertyChanged("VolumeDisplay");
             }
         }
 
@@ -518,7 +708,29 @@ namespace SubsonicUWP
         }
 
         // Playback Queue Logic
-        public IncrementalLoadingCollection<SubsonicItem> PlaybackQueue { get; set; }
+        private IncrementalLoadingCollection<SubsonicItem> _playbackQueue;
+        public IncrementalLoadingCollection<SubsonicItem> PlaybackQueue 
+        { 
+            get => _playbackQueue;
+            set
+            {
+                if (_playbackQueue != value)
+                {
+                    if (_playbackQueue != null) _playbackQueue.CollectionChanged -= OnQueueChanged;
+                    _playbackQueue = value;
+                    if (_playbackQueue != null) _playbackQueue.CollectionChanged += OnQueueChanged;
+                }
+            }
+        }
+        
+        private void OnQueueChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+             // If queue changes (reorder, add next, etc), check if we need to preload the new "Next" song.
+             // Optimize: Only if change affects the immediate next slot?
+             // Since AttemptPreloadNext is robust (checks CurrentSong), just calling it is safe.
+             // We pass CurrentSong?.Id to satisfy the "finishedSongId" check (simulating "Just finished/checked current song, what's next?")
+             AttemptPreloadNext(CurrentSong?.Id);
+        }
         
         private string _queueName = "Now Playing";
         public string QueueName
@@ -564,7 +776,7 @@ namespace SubsonicUWP
             if (PlaybackQueue.Count > 0)
             {
                 // Archive current session
-                await SessionManager.ArchiveSession(PlaybackQueue, QueueName, _currentSessionId, CurrentQueueIndex, GlobalMediaElement.Position, IsShuffle, (int)CurrentRepeatMode);
+                await SessionManager.ArchiveSession(PlaybackQueue, QueueName, _currentSessionId, CurrentQueueIndex, Services.PlaybackService.Instance.Player.PlaybackSession.Position, IsShuffle, (int)CurrentRepeatMode);
             }
 
             if (string.IsNullOrEmpty(queueName)) queueName = "Now Playing";
@@ -636,7 +848,7 @@ namespace SubsonicUWP
             try
             {
                 // Auto-save current queue state
-                await SessionManager.SaveCurrentState(PlaybackQueue, QueueName, CurrentQueueIndex, _currentSessionId, GlobalMediaElement.Position, IsShuffle, (int)CurrentRepeatMode);
+                SessionManager.SaveCurrentState(PlaybackQueue, QueueName, CurrentQueueIndex, _currentSessionId, Services.PlaybackService.Instance.Player.PlaybackSession.Position, IsShuffle, (int)CurrentRepeatMode);
             }
             catch { }
         }
@@ -646,7 +858,7 @@ namespace SubsonicUWP
 
         public void ClearQueue()
         {
-            GlobalMediaElement.Source = null; // Force Stop
+            Services.PlaybackService.Instance.Player.Source = null; // Force Stop
             PlaybackQueue.Clear();
             CurrentQueueIndex = -1;
             CurrentSong = null;
@@ -712,7 +924,7 @@ namespace SubsonicUWP
                 {
                     // Was last song
                     CurrentQueueIndex = -1;
-                    GlobalMediaElement.Pause();
+                    Services.PlaybackService.Instance.Player.Pause();
                 }
             }
             else
@@ -730,16 +942,7 @@ namespace SubsonicUWP
 
 
         
-        private void Volume_ValueChanged(object sender, Windows.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
-        {
-            if (GlobalMediaElement != null)
-            {
-                GlobalMediaElement.Volume = e.NewValue;
-                Windows.Storage.ApplicationData.Current.LocalSettings.Values["Volume"] = e.NewValue;
-                OnPropertyChanged("VolumeDisplay");
-                UpdateVolumeIcon(e.NewValue);
-            }
-        }
+
 
         private void UpdateVolumeIcon(double volume)
         {
@@ -752,9 +955,9 @@ namespace SubsonicUWP
         private double _preMuteVolume = 0.5;
         private void VolumeIcon_Tapped(object sender, TappedRoutedEventArgs e)
         {
-             if (GlobalMediaElement.Volume > 0)
+             if (Services.PlaybackService.Instance.Player.Volume > 0)
              {
-                 _preMuteVolume = GlobalMediaElement.Volume;
+                 _preMuteVolume = Services.PlaybackService.Instance.Player.Volume;
                  VolumeSlider.Value = 0; // Triggers ValueChanged
              }
              else
@@ -1117,8 +1320,9 @@ namespace SubsonicUWP
         {
              if (CurrentRepeatMode == RepeatMode.One)
              {
-                 GlobalMediaElement.Position = TimeSpan.Zero;
-                 GlobalMediaElement.Play();
+                 var player = Services.PlaybackService.Instance.Player;
+                 if (player.PlaybackSession.CanSeek) player.PlaybackSession.Position = TimeSpan.Zero;
+                 player.Play();
                  return;
              }
 
@@ -1184,10 +1388,16 @@ namespace SubsonicUWP
                 {
                     _volume = value;
                     OnPropertyChanged("Volume");
+                    
                     // Update Media Element
-                    if (GlobalMediaElement != null) GlobalMediaElement.Volume = value;
+                    Services.PlaybackService.Instance.Player.Volume = value;
+                    
+                    // Persist to Settings
+                    Windows.Storage.ApplicationData.Current.LocalSettings.Values["Volume"] = value;
+                    
                     // Update Display
                     OnPropertyChanged("VolumeDisplay");
+                    UpdateVolumeIcon(value);
                 }
             }
         }
@@ -1203,60 +1413,79 @@ namespace SubsonicUWP
             await PlaybackQueue.LoadMoreItemsAsync(20);
         }
         
-        private bool _isDragging = false;
-        public void SetDragging(bool isDragging) => _isDragging = isDragging;
-        
         private void Timer_Tick(object sender, object e)
         {
              // Prevent fighting with user seeking
-             if (GlobalMediaElement == null || _isDragging) return;
+             if (_isDragging) return;
              try {
-                 if (GlobalMediaElement.NaturalDuration.HasTimeSpan)
+                 var session = Services.PlaybackService.Instance.Player.PlaybackSession;
+                 double d = session.NaturalDuration.TotalSeconds;
+                 if (!double.IsNaN(d) && !double.IsInfinity(d) && d < TimeSpan.MaxValue.TotalSeconds)
+                     Duration = d;
+                 
+                 double p = session.Position.TotalSeconds;
+                 if (!double.IsNaN(p) && !double.IsInfinity(p) && p < TimeSpan.MaxValue.TotalSeconds)
                  {
-                     Duration = GlobalMediaElement.NaturalDuration.TimeSpan.TotalSeconds;
+                     _isUpdatingFromTimer = true;
+                     CurrentPosition = p;
+                     _isUpdatingFromTimer = false;
                  }
-                 CurrentPosition = GlobalMediaElement.Position.TotalSeconds;
+
+                 // Update SMTC Timeline
+                 // SMTC Update Removed from Timer to prevent Stutter
+
              } catch {}
         }
 
         private void Play_Click(object sender, RoutedEventArgs e)
         {
-             if (GlobalMediaElement.CurrentState == MediaElementState.Playing)
+             var player = Services.PlaybackService.Instance.Player;
+             if (player.PlaybackSession.PlaybackState == MediaPlaybackState.Playing)
              {
-                 GlobalMediaElement.Pause();
+                 player.Pause();
              }
              else
              {
-                 GlobalMediaElement.Play();
+                 player.Play();
              }
              UpdatePlayPauseIcon();
         }
         
         private void UpdatePlayPauseIcon()
         {
-             if (GlobalMediaElement.CurrentState == MediaElementState.Playing) 
+             var session = Services.PlaybackService.Instance.Player.PlaybackSession;
+             if (session.PlaybackState == MediaPlaybackState.Playing || session.PlaybackState == MediaPlaybackState.Buffering) 
              {
                  PlayPauseIcon.Symbol = Symbol.Pause;
-                 if (_smtc != null) _smtc.PlaybackStatus = MediaPlaybackStatus.Playing;
-             }
-             else 
+             if (_smtc != null) 
              {
-                 PlayPauseIcon.Symbol = Symbol.Play;
-                 if (_smtc != null) _smtc.PlaybackStatus = MediaPlaybackStatus.Paused;
+                 _smtc.PlaybackStatus = MediaPlaybackStatus.Playing;
+                 _smtc.IsPlayEnabled = true;
+                 _smtc.IsPauseEnabled = true;
+                 _smtc.IsNextEnabled = true;
+                 _smtc.IsPreviousEnabled = true;
              }
+         }
+         else 
+         {
+             PlayPauseIcon.Symbol = Symbol.Play;
+             if (_smtc != null) 
+             {
+                 _smtc.PlaybackStatus = MediaPlaybackStatus.Paused;
+                 _smtc.IsPlayEnabled = true;
+                 _smtc.IsPauseEnabled = true;
+                 _smtc.IsNextEnabled = true;
+                 _smtc.IsPreviousEnabled = true;
+             }
+         }
         }
         
         private void RetryTimer_Tick(object sender, object e)
         {
             if (_expectingPlay && CurrentSong != null)
             {
-                // Retry playback
-                try 
-                {
-                    GlobalMediaElement.Source = new Uri(CurrentSong.StreamUrl);
-                    GlobalMediaElement.Play();
-                }
-                catch {}
+                // Retry playback via robust loader
+                _ = LoadSong(CurrentSong, true);
             }
             else
             {
@@ -1268,68 +1497,225 @@ namespace SubsonicUWP
 
         private void GlobalMediaElement_CurrentStateChanged(object sender, RoutedEventArgs e)
         {
+             // This is now redundant as we bound to Player events, but might be called by legacy paths?
+             // Leaving empty or directing to UpdateIcon logic just in case.
              UpdatePlayPauseIcon();
-             
-             if (GlobalMediaElement.CurrentState == MediaElementState.Buffering || GlobalMediaElement.CurrentState == MediaElementState.Opening)
-             {
-                 IsBuffering = true;
-             }
-             else if (GlobalMediaElement.CurrentState == MediaElementState.Playing)
-             {
-                 IsBuffering = false;
-                 _expectingPlay = false; // Successfully started
-                 _retryTimer.Stop();
-             }
-             else if (GlobalMediaElement.CurrentState == MediaElementState.Paused)
-             {
-                 IsBuffering = false;
-                 _expectingPlay = false; // User paused or system paused
-                 _retryTimer.Stop();
-             }
-             else if (GlobalMediaElement.CurrentState == MediaElementState.Stopped)
-             {
-                 if (_expectingPlay)
-                 {
-                     // Failed to start but we wanted to -> Keep buffering visible (Loading...)
-                     IsBuffering = true;
-                     // Ensure timer is running
-                     if (!_retryTimer.IsEnabled) _retryTimer.Start();
-                 }
-                 else
-                 {
-                     IsBuffering = false;
-                     _retryTimer.Stop();
-                 }
-             }
         }
 
-        public void PlayTrack(SubsonicItem song)
+
+        public async void PlayTrack(SubsonicItem song)
         {
             if (song == null) return;
+
+            // Explicitly reset position
+            CurrentPosition = 0; 
+            
+            var player = Services.PlaybackService.Instance.Player;
+            player.Pause();
+            // CRITICAL FIX: Clear source immediately to prevent playing old audio if new load fails
+            player.Source = null; 
+            
+            if (player.PlaybackSession.CanSeek) player.PlaybackSession.Position = TimeSpan.Zero;
+            
             CurrentSong = song;
+
+            // Trigger Live Tile Update (Active Playback)
+            TileManager.UpdateTile(song); 
             
-            IsBuffering = true; // Show immediately
+            IsBuffering = true; 
             _expectingPlay = true;
-            _retryTimer.Stop(); // Reset timer logic
+            _retryTimer.Stop(); 
             
+            await LoadSong(song, true);
+        }
+
+        private async System.Threading.Tasks.Task LoadSong(SubsonicItem song, bool autoPlay)
+        {
             try
             {
-                // Ensure SMTC is enabled (it might have been disabled by ClearQueue)
                 if (_smtc != null) _smtc.IsEnabled = true;
 
-                GlobalMediaElement.AutoPlay = true; 
-                GlobalMediaElement.Source = new Uri(song.StreamUrl);
+                // 1. Start Download (Transient for Playback)
+                var context = await Services.PlaybackService.Instance.StartDownload(song, isTransient: true);
+                
+                // Explicitly Touch File (LRU Update)
+                // We only do this here (Playback Start), not during Preload.
+                await Services.PlaybackService.Instance.TouchCachedFile(song.Id);
+                
+                // Determine Threshold
+                bool aggressiveCaching = false;
+                try
+                {
+                    var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
+                    if (settings.ContainsKey("AggressiveBuffering") && (bool)settings["AggressiveBuffering"])
+                    {
+                        aggressiveCaching = true;
+                    }
+                }
+                catch {}
+                
+                // 2. Wait for Sufficient Data (Prevent Lockup)
+                // Wait for either 256KB (fast start) or completion
+                // 2. Wait for Sufficient Data (Prevent Lockup)
+                // Wait for either 256KB (fast start) or completion
+                const long SUFFICIENT_BUFFER = 256 * 1024; 
+                int timeoutMs = 15000; // 15s absolute timeout
+                
+                while (!context.IsComplete && !context.IsFailed)
+                {
+                     // If aggressive, wait for 100%
+                     if (aggressiveCaching)
+                     {
+                         if (context.Progress >= 1.0) break;
+                     }
+                     else
+                     {
+                         // Standard: Wait for sufficient buffer to prevent starvation
+                         if (context.DownloadedBytes >= SUFFICIENT_BUFFER) break;
+                     }
+
+                    if (CurrentSong != song) return; // User switched track
+                    
+                    await Task.Delay(100); // Check every 100ms
+                    timeoutMs -= 100;
+                    if (timeoutMs <= 0) throw new TimeoutException("Buffering timed out");
+                }
+                
+                if (CurrentSong != song) return;
+                
+                if (context.IsFailed)
+                {
+                   throw new Exception("Download failed");
+                }
+                
+                // If download was already complete (cached), trigger preload immediately
+                if (context.IsComplete)
+                {
+                    AttemptPreloadNext(song.Id);
+                }
+
+                // 3. Open Read Stream
+                // Optimization priority: RAM > Disk (Cached) > Disk (Buffering)
+                if (Services.PlaybackService.Instance.IsRamDoubleBufferingEnabled && context.RamStream != null)
+                {
+                     // RAM Mode: Read from MemoryStream (Always prioritize if available to avoid Disk Reads)
+                     var bufferStream = new Services.BufferingStream(context.RamStream, context);
+                     Services.PlaybackService.Instance.Player.AutoPlay = autoPlay;
+                     Services.PlaybackService.Instance.Player.Source = Windows.Media.Core.MediaSource.CreateFromStream(bufferStream, "audio/mpeg");
+                }
+                else if (context.IsComplete)
+                {
+                    if (Services.PlaybackService.Instance.IsRamDoubleBufferingEnabled)
+                    {
+                         // RAM Mode (Cached): Pre-load file into RAM to ensure 0 disk reads during playback
+                         try 
+                         {
+                             var fileRef = await Windows.Storage.StorageFile.GetFileFromPathAsync(context.FilePath);
+                             var props = await fileRef.GetBasicPropertiesAsync();
+                             if (props.Size < int.MaxValue)
+                             {
+                                 var memStream = new MemoryStream((int)props.Size);
+                                 using (var fs = await fileRef.OpenStreamForReadAsync()) 
+                                 {
+                                     await fs.CopyToAsync(memStream); 
+                                 }
+                                 memStream.Position = 0;
+                                 memStream.Position = 0;
+                                 context.RamStream = memStream; 
+                                 
+                                 // CRITICAL: Update context so BufferingStream knows the full size!
+                                 context.TotalBytes = (long)props.Size;
+                                 context.DownloadedBytes = (long)props.Size;
+                                 context.IsComplete = true; // Ensure it knows it's complete 
+                                 
+                                 // Use BufferingStream to wrap our MemoryStream (handles RandomAccessStream adaptation)
+                                 var bufferStream = new Services.BufferingStream(context.RamStream, context);
+                                 Services.PlaybackService.Instance.Player.AutoPlay = autoPlay;
+                                 Services.PlaybackService.Instance.Player.Source = Windows.Media.Core.MediaSource.CreateFromStream(bufferStream, "audio/mpeg");
+                                 
+                                 UpdateSmtcMetadata(song);
+                                 return;
+                             }
+                         }
+                         catch 
+                         { 
+                            // Fallback to disk if RAM load fails (OOM, etc)
+                         }
+                    }
+
+                    // Disk Mode (Cached): Direct File Access
+                    var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(context.FilePath);
+                    Services.PlaybackService.Instance.Player.AutoPlay = autoPlay;
+                    Services.PlaybackService.Instance.Player.Source = Windows.Media.Core.MediaSource.CreateFromStorageFile(file);
+                }
+                else
+                {
+                     // Disk Mode (Buffering): FileStream
+                     var fs = System.IO.File.Open(context.FilePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete);
+                     var bufferStream = new Services.BufferingStream(fs, context);
+                     
+                     Services.PlaybackService.Instance.Player.AutoPlay = autoPlay;
+                     Services.PlaybackService.Instance.Player.Source = Windows.Media.Core.MediaSource.CreateFromStream(bufferStream, "audio/mpeg");
+                } 
+                
                 UpdateSmtcMetadata(song);
                 UpdatePlayPauseIcon();
             }
             catch 
             {
-                // IsBuffering stays true because _expectingPlay is true
-                // Start Timer
-                _retryTimer.Start();
+                if (autoPlay) 
+                {
+                    IsBuffering = true;
+                    _retryTimer.Start();
+                }
             }
         }
+        
+        private void OnDownloadCompleted(object sender, string songId)
+        {
+             AttemptPreloadNext(songId);
+        }
 
+        private async void AttemptPreloadNext(string finishedSongId)
+        {
+             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+             {
+                 if (PlaybackQueue == null || PlaybackQueue.Count == 0) return;
+                 
+                 // If "Aggressive Caching" is ON, we might want to preload MORE than 1 song?
+                 // But for now, "Preload Next" is a baseline feature for smooth playback, regardless of setting.
+                 // The user explicitly requested this to work even if "Aggressive Caching" is disabled.
+                 
+                 // Find Next Song
+                 // Only preload if the finished song is the Current Song (or we are just starting it)
+                 if (CurrentSong != null && CurrentSong.Id == finishedSongId)
+                 {
+                      int nextIndex = CurrentQueueIndex + 1;
+                      if (nextIndex < PlaybackQueue.Count)
+                      {
+                          var nextSong = PlaybackQueue[nextIndex];
+                          // Start Background Download
+                          await Services.PlaybackService.Instance.StartDownload(nextSong, isTransient: true);
+                          
+                          // Determine Previous Song
+                          string prevId = null;
+                          int prevIndex = CurrentQueueIndex - 1;
+                          if (prevIndex >= 0 && prevIndex < PlaybackQueue.Count)
+                          {
+                              prevId = PlaybackQueue[prevIndex].Id;
+                          }
+                          
+                          // Clean Cache (Async) - Keep Prev, Current, Next
+                          var keep = new System.Collections.Generic.List<string>();
+                          if (CurrentSong != null) keep.Add(CurrentSong.Id);
+                          if (nextSong != null) keep.Add(nextSong.Id);
+                          if (prevId != null) keep.Add(prevId);
+                          
+                          Services.PlaybackService.Instance.CleanCache(keep);
+                      }
+                 }
+             });
+        }
         private void UpdateSmtcMetadata(SubsonicItem song)
         {
              if (_smtc == null || song == null) return;
@@ -1340,16 +1726,81 @@ namespace SubsonicUWP
              display.MusicProperties.AlbumTitle = song.Album ?? "";
              if (!string.IsNullOrEmpty(song.ImageUrl))
              {
-                 try { display.Thumbnail = Windows.Storage.Streams.RandomAccessStreamReference.CreateFromUri(new Uri(song.ImageUrl)); } catch {}
+                 _ = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+                 {
+                     try 
+                     { 
+                         // 1. Try Offline Cache Sidecar first
+                         try
+                         {
+                             var cacheFolder = await Windows.Storage.ApplicationData.Current.TemporaryFolder.GetFolderAsync("Cache");
+                             var cachedArt = await cacheFolder.TryGetItemAsync($"stream_{song.Id}.jpg") as Windows.Storage.StorageFile;
+                             if (cachedArt != null)
+                             {
+                                 display.Thumbnail = Windows.Storage.Streams.RandomAccessStreamReference.CreateFromFile(cachedArt);
+                                 display.Update();
+                                 return; 
+                             }
+                         }
+                         catch {}
+
+                         // 2. Try Local Tile Cache (Best for Lock Screen)
+                         var localFolder = Windows.Storage.ApplicationData.Current.LocalFolder;
+                         
+                         // For now, let's try to just download it to a temp file for SMTC usage
+                         var file = await Windows.Storage.ApplicationData.Current.TemporaryFolder.CreateFileAsync("smtc_art.jpg", Windows.Storage.CreationCollisionOption.ReplaceExisting);
+                         using (var client = new System.Net.Http.HttpClient())
+                         {
+                             var buffer = await client.GetByteArrayAsync(new Uri(song.ImageUrl));
+                             await Windows.Storage.FileIO.WriteBytesAsync(file, buffer);
+                         }
+                         
+                         display.Thumbnail = Windows.Storage.Streams.RandomAccessStreamReference.CreateFromFile(file);
+                         display.Update();
+                     } 
+                     catch 
+                     {
+                         // Fallback to URL (might fail but worth a shot)
+                         try { display.Thumbnail = Windows.Storage.Streams.RandomAccessStreamReference.CreateFromUri(new Uri(song.ImageUrl)); display.Update(); } catch {}
+                     }
+                 });
              }
-             display.Update();
+             else
+             {
+                 display.Update();
+             }
+        }
+
+        private void UpdateSmtcTimeline()
+        {
+            if (_smtc == null) return;
+            try
+            {
+                var session = Services.PlaybackService.Instance.Player.PlaybackSession;
+                var timeline = new SystemMediaTransportControlsTimelineProperties();
+                timeline.StartTime = TimeSpan.Zero;
+                timeline.MinSeekTime = TimeSpan.Zero;
+                timeline.Position = session.Position;
+                
+                if (session.NaturalDuration.TotalSeconds > 0)
+                    timeline.MaxSeekTime = session.NaturalDuration;
+                else if (CurrentSong != null && CurrentSong.Duration > 0)
+                    timeline.MaxSeekTime = TimeSpan.FromSeconds(CurrentSong.Duration);
+                else
+                    timeline.MaxSeekTime = TimeSpan.Zero;
+                    
+                timeline.EndTime = timeline.MaxSeekTime;
+                
+                _smtc.UpdateTimelineProperties(timeline);
+            }
+            catch { }
         }
         
         private void Prev_Click(object sender, RoutedEventArgs e)
         {
-             if (GlobalMediaElement.Position.TotalSeconds > 5)
+             if (Services.PlaybackService.Instance.Player.PlaybackSession.Position.TotalSeconds > 5)
              {
-                 GlobalMediaElement.Position = TimeSpan.Zero;
+                 Services.PlaybackService.Instance.Player.PlaybackSession.Position = TimeSpan.Zero;
              }
              else if (CurrentQueueIndex > 0)
              {
@@ -1376,21 +1827,68 @@ namespace SubsonicUWP
 
         private void InitSMTC()
         {
-             GlobalMediaElement.MediaEnded += GlobalMediaElement_MediaEnded;
-             GlobalMediaElement.CurrentStateChanged += GlobalMediaElement_CurrentStateChanged;
-             GlobalMediaElement.MediaFailed += GlobalMediaElement_MediaFailed;
+             // Subscribe to Player Events
+             var player = Services.PlaybackService.Instance.Player;
+             player.MediaEnded += Player_MediaEnded;
+             player.PlaybackSession.PlaybackStateChanged += Player_PlaybackStateChanged;
+             player.MediaFailed += Player_MediaFailed;
              
              _smtc = SystemMediaTransportControls.GetForCurrentView();
+             _smtc.ButtonPressed -= Smtc_ButtonPressed;
+             _smtc.ButtonPressed += Smtc_ButtonPressed;
+             
              _smtc.IsPlayEnabled = true;
              _smtc.IsPauseEnabled = true;
              _smtc.IsNextEnabled = true;
              _smtc.IsPreviousEnabled = true;
-             _smtc.ButtonPressed += Smtc_ButtonPressed;
 
-             if (Windows.Storage.ApplicationData.Current.LocalSettings.Values.TryGetValue("Volume", out object vol))
+            if (Windows.Storage.ApplicationData.Current.LocalSettings.Values.ContainsKey("Volume"))
+            {
+                 var vol = Windows.Storage.ApplicationData.Current.LocalSettings.Values["Volume"];
+                 _volume = (double)vol; 
+                 // Set Player Volume
+                 player.Volume = _volume;
+                 UpdateVolumeIcon(_volume);
+            }
+
+     }
+
+        private async void Player_MediaEnded(Windows.Media.Playback.MediaPlayer sender, object args)
+        {
+             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => GlobalMediaElement_MediaEnded(null, null));
+        }
+
+        private async void Player_PlaybackStateChanged(Windows.Media.Playback.MediaPlaybackSession sender, object args)
+        {
+             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
              {
-                 GlobalMediaElement.Volume = (double)vol;
-             }
+                  UpdatePlayPauseIcon();
+                  UpdateSmtcTimeline();
+                  
+                  // Map PlaybackState to Buffering Logic
+                  if (sender.PlaybackState == MediaPlaybackState.Buffering || sender.PlaybackState == MediaPlaybackState.Opening)
+                  {
+                      IsBuffering = true;
+                  }
+                  else if (sender.PlaybackState == MediaPlaybackState.Playing)
+                  {
+                      IsBuffering = false;
+                      _expectingPlay = false; 
+                      _retryTimer.Stop();
+                  }
+                  else if (sender.PlaybackState == MediaPlaybackState.Paused)
+                  {
+                      IsBuffering = false;
+                      _expectingPlay = false; 
+                      _retryTimer.Stop();
+                  }
+                  // Handle Error/None?
+             });
+        }
+
+        private async void Player_MediaFailed(Windows.Media.Playback.MediaPlayer sender, Windows.Media.Playback.MediaPlayerFailedEventArgs args)
+        {
+             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => GlobalMediaElement_MediaFailed(null, null));
         }
 
         private void GlobalMediaElement_MediaFailed(object sender, ExceptionRoutedEventArgs e)
@@ -1412,13 +1910,14 @@ namespace SubsonicUWP
         {
             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
             {
+                var player = Services.PlaybackService.Instance.Player;
                 switch (args.Button)
                 {
                     case SystemMediaTransportControlsButton.Play:
-                        GlobalMediaElement.Play();
+                        player.Play();
                         break;
                     case SystemMediaTransportControlsButton.Pause:
-                        GlobalMediaElement.Pause();
+                        player.Pause();
                         break;
                     case SystemMediaTransportControlsButton.Next:
                         Next_Click(null, null);
@@ -1429,6 +1928,10 @@ namespace SubsonicUWP
                 }
             });
         }
+
+
+
+
         private async void FavoriteButton_Click(object sender, RoutedEventArgs e)
         {
             await ToggleFavorite();
@@ -1484,6 +1987,7 @@ namespace SubsonicUWP
         {
              ContentFrame.Navigate(pageType);
         }
+
     }
 }
 #pragma warning restore CS0618 // Type or member is obsolete

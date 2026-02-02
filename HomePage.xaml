@@ -6,16 +6,44 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
 
     <Page.Resources>
-        <MenuFlyout x:Key="MediaItemMenu">
-            <MenuFlyoutItem Text="Add to current queue" Click="AddToQueue_Click"/>
-            <MenuFlyoutItem Text="Add to playlist" Click="AddToPlaylist_Click"/>
-            <MenuFlyoutItem Text="Play next" Click="PlayNext_Click"/>
-            <MenuFlyoutItem Text="Favorite" Click="Favorite_Click"/>
-            <MenuFlyoutItem Text="Download" Click="Download_Click"/>
+        <MenuFlyout x:Key="SongMenu">
+            <MenuFlyoutItem Text="Add to current queue" Click="AddToQueue_Click" Icon="Add"/>
+            <MenuFlyoutItem Text="Add to playlist" Click="AddToPlaylist_Click" Icon="MusicInfo"/>
+            <MenuFlyoutItem Text="Play next" Click="PlayNext_Click" Icon="Upload"/>
+            <MenuFlyoutItem Text="Favorite" Click="Favorite_Click" Icon="Favorite"/>
+            <MenuFlyoutItem Text="Add to cache" Click="AddToCache_Click" Icon="Download"/>
+            <MenuFlyoutItem Text="Export as mp3" Click="Export_Click" Icon="SaveLocal"/>
+        </MenuFlyout>
+
+        <MenuFlyout x:Key="AlbumMenu">
+            <MenuFlyoutItem Text="Add to current queue" Click="AddToQueue_Click" Icon="Add"/>
+            <MenuFlyoutItem Text="Add to playlist" Click="AddToPlaylist_Click" Icon="MusicInfo"/>
+            <MenuFlyoutItem Text="Play next" Click="PlayNext_Click" Icon="Upload"/>
+            <!-- No Favorite for Albums -->
+            <MenuFlyoutItem Text="Add to cache" Click="AddToCache_Click" Icon="Download"/>
+            <MenuFlyoutItem Text="Export as mp3" Click="Export_Click" Icon="SaveLocal"/>
         </MenuFlyout>
 
         <DataTemplate x:Key="AlbumTemplate">
-            <Grid Width="120" Margin="0,0,12,12" Background="{ThemeResource ControlBackgroundBrush}" FlyoutBase.AttachedFlyout="{StaticResource MediaItemMenu}" RightTapped="MediaItemGrid_RightTapped" Holding="MediaItemGrid_Holding">
+            <Grid Width="120" Margin="0,0,12,12" Background="{ThemeResource ControlBackgroundBrush}" FlyoutBase.AttachedFlyout="{StaticResource AlbumMenu}" RightTapped="MediaItemGrid_RightTapped" Holding="MediaItemGrid_Holding">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="120"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <!-- Fallback Icon if no image -->
+                <TextBlock Text="&#xE93C;" FontFamily="Segoe MDL2 Assets" FontSize="40" Foreground="{ThemeResource SecondaryForegroundBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" UseLayoutRounding="True" Visibility="{Binding ImageUrl, Converter={StaticResource NullToVis}}"/>
+                <Image Source="{Binding ImageUrl}" Stretch="UniformToFill"/>
+                <Border Grid.Row="1" Padding="4">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Title}" Foreground="{ThemeResource ForegroundBrush}" TextTrimming="CharacterEllipsis" FontSize="12" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Artist}" Foreground="{ThemeResource SecondaryForegroundBrush}" TextTrimming="CharacterEllipsis" FontSize="11"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="SongTemplate">
+            <Grid Width="120" Margin="0,0,12,12" Background="{ThemeResource ControlBackgroundBrush}" FlyoutBase.AttachedFlyout="{StaticResource SongMenu}" RightTapped="MediaItemGrid_RightTapped" Holding="MediaItemGrid_Holding">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="120"/>
                     <RowDefinition Height="Auto"/>
@@ -68,7 +96,7 @@
                         </StackPanel>
                     </Button>
 
-                    <GridView ItemsSource="{Binding Favorites}" ItemTemplate="{StaticResource AlbumTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Enabled" Background="Transparent" BorderThickness="0" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Song_ItemClick">
+                    <GridView ItemsSource="{Binding Favorites}" ItemTemplate="{StaticResource SongTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Enabled" Background="Transparent" BorderThickness="0" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Song_ItemClick">
                         <GridView.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel Orientation="Horizontal"/>
@@ -110,7 +138,7 @@
                         </StackPanel>
                     </Button>
 
-                    <GridView ItemsSource="{Binding RandomSongs}" ItemTemplate="{StaticResource AlbumTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Enabled" Background="Transparent" BorderThickness="0" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Song_ItemClick">
+                    <GridView ItemsSource="{Binding RandomSongs}" ItemTemplate="{StaticResource SongTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Enabled" Background="Transparent" BorderThickness="0" SelectionMode="None" IsItemClickEnabled="True" ItemClick="Song_ItemClick">
                         <GridView.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel Orientation="Horizontal"/>

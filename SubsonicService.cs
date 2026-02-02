@@ -43,9 +43,64 @@ namespace SubsonicUWP
             return BuildUrl("getCoverArt.view", $"&id={coverArtId}&size=600");
         }
 
+        // Settings Cache
+        private int? _cachedMaxBitrate = null;
+        public int MaxBitrate
+        {
+            get
+            {
+                if (_cachedMaxBitrate.HasValue) return _cachedMaxBitrate.Value;
+                try
+                {
+                    var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
+                    if (settings.ContainsKey("MaxBitrate")) _cachedMaxBitrate = (int)settings["MaxBitrate"];
+                    else _cachedMaxBitrate = 0;
+                }
+                catch { _cachedMaxBitrate = 0; }
+                return _cachedMaxBitrate.Value;
+            }
+        }
+
+        private bool? _cachedManualCacheMode = null;
+        public bool ManualCacheMode
+        {
+            get
+            {
+                if (_cachedManualCacheMode.HasValue) return _cachedManualCacheMode.Value;
+                try
+                {
+                    var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
+                    if (settings.ContainsKey("ManualCacheMode")) _cachedManualCacheMode = (bool)settings["ManualCacheMode"];
+                    else _cachedManualCacheMode = false;
+                }
+                catch { _cachedManualCacheMode = false; }
+                return _cachedManualCacheMode.Value;
+            }
+        }
+
+        public void InvalidateSettings()
+        {
+            _cachedMaxBitrate = null;
+            _cachedManualCacheMode = null;
+        }
+
         public string GetStreamUrl(string id)
         {
-             return BuildUrl("stream.view", $"&id={id}");
+             string query = $"&id={id}";
+             // Manual Bitrate Selection (User Requested)
+             try
+             {
+                 int maxBitrate = MaxBitrate;
+
+                 if (maxBitrate > 0)
+                 {
+                     // Enforce transcoding
+                     query += $"&maxBitRate={maxBitrate}&format=mp3&estimateContentLength=true";
+                 }
+                 // If 0, we send nothing -> Raw Stream (FLAC/Original)
+             }
+             catch {}
+             return BuildUrl("stream.view", query);
         }
 
         public async Task<System.Collections.ObjectModel.ObservableCollection<SubsonicItem>> GetRandomSongs(int size = 50)
@@ -542,6 +597,32 @@ namespace SubsonicUWP
              }
              catch { }
              return result;
+        }
+        public async Task<System.Collections.Generic.List<SubsonicItem>> GetAllArtistSongs(string artistId)
+        {
+            var allSongs = new System.Collections.Generic.List<SubsonicItem>();
+            try
+            {
+                // Get Artist (Albums)
+                var artistData = await GetArtist(artistId);
+                var albums = artistData.Item2;
+                
+                // Get Tracks for each Album
+                // Run in parallel? Subsonic server might rate limit, but usually fine.
+                // Let's do sequential to be safe or bounded parallelism.
+                foreach(var album in albums)
+                {
+                    var tracks = await GetAlbum(album.Id);
+                    // Ensure Artist name is populated if missing (common in single-disc albums)
+                    foreach(var t in tracks) 
+                    {
+                        if (string.IsNullOrEmpty(t.Artist)) t.Artist = artistData.Item1.Title;
+                        allSongs.Add(t);
+                    }
+                }
+            }
+            catch {}
+            return allSongs;
         }
     }
 

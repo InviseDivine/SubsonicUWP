@@ -212,5 +212,112 @@ namespace SubsonicUWP
                  }
              }
         }
+        private void Grid_RightTapped(object sender, Windows.UI.Xaml.Input.RightTappedRoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe)
+            {
+                e.Handled = true;
+                if (fe.ContextFlyout != null)
+                {
+                    fe.ContextFlyout.ShowAt(fe, new Windows.UI.Xaml.Controls.Primitives.FlyoutShowOptions 
+                    { 
+                        Position = e.GetPosition(fe) 
+                    });
+                }
+            }
+        }
+
+        private void PlayNext_Click(object sender, RoutedEventArgs e)
+        {
+             if (sender is FrameworkElement fe && fe.Tag is string id)
+             {
+                 var song = System.Linq.Enumerable.FirstOrDefault(Tracks, x => x.Id == id);
+                 if (song != null)
+                 {
+                     Services.PlaybackService.Instance.PlayNext(song);
+                 }
+             }
+        }
+
+        private void AddToQueue_Click(object sender, RoutedEventArgs e)
+        {
+             if (sender is FrameworkElement fe && fe.Tag is string id)
+             {
+                 var song = System.Linq.Enumerable.FirstOrDefault(Tracks, x => x.Id == id);
+                 if (song != null)
+                 {
+                     Services.PlaybackService.Instance.AddToQueue(song);
+                 }
+             }
+        }
+        
+        private void AddToCache_Click(object sender, RoutedEventArgs e)
+        {
+             if (sender is FrameworkElement fe && fe.Tag is string id)
+             {
+                 var song = System.Linq.Enumerable.FirstOrDefault(Tracks, x => x.Id == id);
+                 if (song != null)
+                 {
+                     Services.PlaybackService.Instance.EnqueueDownload(song, isTransient: false);
+                 }
+             }
+        }
+
+        private void AddToCacheAll_Click(object sender, RoutedEventArgs e)
+        {
+             if (Tracks.Count > 0)
+             {
+                 Services.PlaybackService.Instance.EnqueueDownloads(Tracks, isTransient: false);
+             }
+        }
+
+        private async void ExportAll_Click(object sender, RoutedEventArgs e)
+        {
+             if (Tracks.Count > 0)
+             {
+                 if (Tracks.Count > 1)
+                 {
+                     var dialog = new Windows.UI.Popups.MessageDialog($"Starting export for {Tracks.Count} tracks...", "Export Playlist");
+                     await dialog.ShowAsync();
+                 }
+                 
+                 foreach (var t in Tracks)
+                 {
+                     await DownloadManager.StartDownload(t);
+                 }
+             }
+        }
+
+        private async void Remove_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is string id)
+            {
+               var item = System.Linq.Enumerable.FirstOrDefault(Tracks, x => x.Id == id);
+               if (item != null) 
+               {
+                   Tracks.Remove(item);
+                   
+                   if (!string.IsNullOrEmpty(_playlistId))
+                   {
+                        var ids = System.Linq.Enumerable.Select(Tracks, t => t.Id);
+                        await SubsonicService.Instance.UpdatePlaylist(_playlistId, ids);
+                   }
+                   else if (_currentSession != null)
+                   {
+                       _currentSession.Tracks = System.Linq.Enumerable.ToList(Tracks);
+                       await SessionManager.UpdateSession(_currentSession);
+                   }
+               }
+            }
+        }
+
+        private async void Export_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+            {
+                await DownloadManager.StartDownload(item);
+            }
+        }
+
     }
 }

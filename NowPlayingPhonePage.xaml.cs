@@ -89,10 +89,25 @@ namespace SubsonicUWP
              if (mp != null)
              {
                  this.DataContext = mp;
-                 UpdatePlayIcon(mp.GlobalMediaElement.CurrentState == Windows.UI.Xaml.Media.MediaElementState.Playing);
-                 mp.GlobalMediaElement.CurrentStateChanged += GlobalMediaElement_CurrentStateChanged;
+                 UpdatePlayIcon();
+                 
+                 // Subscribe to MediaPlayer events via PlaybackService
+                 Services.PlaybackService.Instance.Player.PlaybackSession.PlaybackStateChanged += PlaybackSession_PlaybackStateChanged;
+
+                 // Subscribe to PropertyChanged for Volume updates
+                 mp.PropertyChanged += Mp_PropertyChanged;
                  UpdatePhoneIcons(mp); 
+                 
+                 // manual cache mode check
+                 if (SubsonicService.Instance.ManualCacheMode)
+                     CachePermanentlyItem.Visibility = Visibility.Visible;
+                 else
+                     CachePermanentlyItem.Visibility = Visibility.Collapsed; 
                  UpdateFavoriteIcon(mp);
+                 UpdateFavoriteIcon(mp);
+                 UpdateVolumeIcon(mp);
+                 // Manual Slider Init
+                 TimeSlider.Value = mp.CurrentPosition;
              }
              
              TimeSlider.AddHandler(UIElement.PointerPressedEvent, new Windows.UI.Xaml.Input.PointerEventHandler(TimeSlider_PointerPressed), true);
@@ -104,7 +119,8 @@ namespace SubsonicUWP
              var mp = this.DataContext as MainPage;
              if (mp != null)
              {
-                 mp.GlobalMediaElement.CurrentStateChanged -= GlobalMediaElement_CurrentStateChanged;
+                 Services.PlaybackService.Instance.Player.PlaybackSession.PlaybackStateChanged -= PlaybackSession_PlaybackStateChanged;
+                 mp.PropertyChanged -= Mp_PropertyChanged;
              }
              
              TimeSlider.RemoveHandler(UIElement.PointerPressedEvent, new Windows.UI.Xaml.Input.PointerEventHandler(TimeSlider_PointerPressed));
@@ -113,30 +129,62 @@ namespace SubsonicUWP
              base.OnNavigatedFrom(e);
         }
 
-        private void GlobalMediaElement_CurrentStateChanged(object sender, RoutedEventArgs e)
+        private void Mp_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-             var mp = this.DataContext as MainPage;
-             if (mp != null)
+             if (e.PropertyName == "Volume")
              {
-                 UpdatePlayIcon(mp.GlobalMediaElement.CurrentState == Windows.UI.Xaml.Media.MediaElementState.Playing);
+                 var mp = sender as MainPage;
+                 if (mp != null) UpdateVolumeIcon(mp);
+             }
+             else if (e.PropertyName == "CurrentPosition")
+             {
+                 var mp = sender as MainPage;
+                 if (mp != null && !mp.IsDragging) // Don't fight user
+                 {
+                     TimeSlider.Value = mp.CurrentPosition;
+                 }
              }
         }
 
-        private void UpdatePlayIcon(bool isPlaying)
+        private void UpdateVolumeIcon(MainPage mp)
+        {
+             if (mp == null || VolumeIcon == null) return;
+             double volume = mp.Volume;
+             
+             if (volume == 0) VolumeIcon.Text = "\uE74F"; // Mute
+             else if (volume < 0.33) VolumeIcon.Text = "\uE993"; 
+             else if (volume < 0.66) VolumeIcon.Text = "\uE994"; 
+             else VolumeIcon.Text = "\uE767"; 
+        }
+
+        private async void PlaybackSession_PlaybackStateChanged(Windows.Media.Playback.MediaPlaybackSession sender, object args)
+        {
+             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+             {
+                 UpdatePlayIcon();
+             });
+        }
+
+        private void UpdatePlayIcon()
         {
              if (PlayPauseIcon == null) return;
+             var state = Services.PlaybackService.Instance.Player.PlaybackSession.PlaybackState;
+             bool isPlaying = state == Windows.Media.Playback.MediaPlaybackState.Playing || 
+                              state == Windows.Media.Playback.MediaPlaybackState.Buffering;
              PlayPauseIcon.Text = isPlaying ? "\uE769" : "\uE768"; 
         }
 
         private void Play_Click(object sender, RoutedEventArgs e)
         {
-             var mp = this.DataContext as MainPage;
-             if (mp != null)
+             var state = Services.PlaybackService.Instance.Player.PlaybackSession.PlaybackState;
+             if (state == Windows.Media.Playback.MediaPlaybackState.Playing || 
+                 state == Windows.Media.Playback.MediaPlaybackState.Buffering)
              {
-                 if (mp.GlobalMediaElement.CurrentState == Windows.UI.Xaml.Media.MediaElementState.Playing)
-                     mp.GlobalMediaElement.Pause();
-                 else
-                     mp.GlobalMediaElement.Play();
+                 Services.PlaybackService.Instance.Player.Pause();
+             }
+             else
+             {
+                 Services.PlaybackService.Instance.Player.Play();
              }
         }
 
@@ -200,12 +248,21 @@ namespace SubsonicUWP
              }
         }
 
-        private async void Download_Click(object sender, RoutedEventArgs e)
+        private async void Export_Click(object sender, RoutedEventArgs e)
         {
              var mp = this.DataContext as MainPage;
              if (mp?.CurrentSong != null)
              {
                  await DownloadManager.StartDownload(mp.CurrentSong);
+             }
+        }
+
+        private async void CachePermanently_Click(object sender, RoutedEventArgs e)
+        {
+             var mp = this.DataContext as MainPage;
+             if (mp?.CurrentSong != null)
+             {
+                 await Services.PlaybackService.Instance.PromoteTransient(mp.CurrentSong.Id);
              }
         }
 

@@ -1,3 +1,6 @@
+using System;
+using System.Threading.Tasks;
+using System.Linq;
 using System.Collections.ObjectModel;
 using Windows.UI;
 using Windows.UI.Xaml;
@@ -74,23 +77,89 @@ namespace SubsonicUWP
              }
         }
 
-        private async void PlayArtist_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private void Artist_RightTapped(object sender, Windows.UI.Xaml.Input.RightTappedRoutedEventArgs e)
+        {
+             if (sender is FrameworkElement fe) Windows.UI.Xaml.Controls.Primitives.FlyoutBase.ShowAttachedFlyout(fe);
+             e.Handled = true;
+        }
+
+        private void Artist_Holding(object sender, Windows.UI.Xaml.Input.HoldingRoutedEventArgs e)
+        {
+            if (e.HoldingState == Windows.UI.Input.HoldingState.Started)
+            {
+               if (sender is FrameworkElement fe) Windows.UI.Xaml.Controls.Primitives.FlyoutBase.ShowAttachedFlyout(fe);
+               e.Handled = true;
+            }
+        }
+
+        private async void AddToQueue_Click(object sender, RoutedEventArgs e)
         {
              if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
              {
-                  // Stop propagation isn't strictly needed if button handles it, but good practice
-                  e.OriginalSource.ToString(); 
-                  
-                  try
-                  {
-                      var songs = await SubsonicService.Instance.GetArtistTopSongs(item.Title);
-                      var mp = (Windows.UI.Xaml.Window.Current.Content as Frame)?.Content as MainPage;
-                      if (mp != null && songs.Count > 0)
+                 var songs = await SubsonicService.Instance.GetAllArtistSongs(item.Id);
+                 var mp = (Window.Current.Content as Frame)?.Content as MainPage;
+                 if (mp != null && songs.Count > 0) mp.AddToQueue(songs);
+             }
+        }
+        
+        private async void PlayNext_Click(object sender, RoutedEventArgs e)
+        {
+             if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+             {
+                 var songs = await SubsonicService.Instance.GetAllArtistSongs(item.Id);
+                 var mp = (Window.Current.Content as Frame)?.Content as MainPage;
+                 if (mp != null && songs.Count > 0) mp.PlayNext(songs);
+             }
+        }
+
+        private async void AddToCache_Click(object sender, RoutedEventArgs e)
+        {
+             if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+             {
+                 var songs = await SubsonicService.Instance.GetAllArtistSongs(item.Id);
+                 if (songs.Count > 0)
+                 {
+                      if (songs.Count > 25)
                       {
-                          mp.PlayTrackList(songs, songs[0], item.Title);
+                          var dialog = new Windows.UI.Popups.MessageDialog($"Are you sure that you want to cache {songs.Count} songs?", "Confirm Cache");
+                          dialog.Commands.Add(new Windows.UI.Popups.UICommand("Yes"));
+                          dialog.Commands.Add(new Windows.UI.Popups.UICommand("No"));
+                          var result = await dialog.ShowAsync();
+                          if (result.Label != "Yes") return;
                       }
-                  }
-                  catch {}
+
+                      Services.PlaybackService.Instance.EnqueueDownloads(songs, isTransient: false);
+                 }
+             }
+        }
+
+        private async void Export_Click(object sender, RoutedEventArgs e)
+        {
+             if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+             {
+                 var songs = await SubsonicService.Instance.GetAllArtistSongs(item.Id);
+                 if (songs.Count > 0)
+                 {
+                      if (songs.Count > 25)
+                      {
+                          var dialog = new Windows.UI.Popups.MessageDialog($"Are you sure that you want to export {songs.Count} songs?", "Confirm Export");
+                          dialog.Commands.Add(new Windows.UI.Popups.UICommand("Yes"));
+                          dialog.Commands.Add(new Windows.UI.Popups.UICommand("No"));
+                          var result = await dialog.ShowAsync();
+                          if (result.Label != "Yes") return;
+                      }
+                      else if (songs.Count > 1) 
+                      {
+                          // Show old dialog for small batch > 1 (optional, but consistent with other pages)
+                          var dialog = new Windows.UI.Popups.MessageDialog($"Starting export for {songs.Count} songs...", "Export Artist");
+                          await dialog.ShowAsync();
+                      }
+                      
+                      foreach(var t in songs)
+                      {
+                          await DownloadManager.StartDownload(t);
+                      }
+                 }
              }
         }
     }

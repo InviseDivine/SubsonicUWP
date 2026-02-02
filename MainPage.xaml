@@ -1,6 +1,7 @@
 <Page x:Class="SubsonicUWP.MainPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:SubsonicUWP.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" Background="{ThemeResource WindowBackgroundBrush}">
 
@@ -10,7 +11,7 @@
             <VisualStateGroup x:Name="WindowStates">
                 <VisualState x:Name="WideState">
                     <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="720"/>
+                        <AdaptiveTrigger MinWindowWidth="850"/>
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="RootSplitView.DisplayMode" Value="Inline"/>
@@ -36,6 +37,7 @@
                         <Setter Target="MoreButton.Visibility" Value="Collapsed"/>
                         <Setter Target="VolumePanel.Visibility" Value="Collapsed"/>
                         <Setter Target="PlayerBarCol0.Width" Value="*"/>
+                        <Setter Target="PlayerBarCol1.Width" Value="Auto"/>
                         <Setter Target="PlayerBarCol2.Width" Value="0"/>
 
                         <!-- Mobile Compact Player Sizes -->
@@ -157,26 +159,29 @@
         <!-- Player Bar -->
         <Grid x:Name="PlayerBarGrid" Grid.Row="1" Grid.ColumnSpan="2" Height="90" Background="{ThemeResource PlayerBarBackgroundBrush}" ManipulationMode="TranslateY" ManipulationCompleted="PlayerBar_ManipulationCompleted">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="PlayerBarCol0" Width="300"/>
-                <ColumnDefinition x:Name="PlayerBarCol1" Width="*"/>
-                <ColumnDefinition x:Name="PlayerBarCol2" Width="300"/>
+                <ColumnDefinition x:Name="PlayerBarCol0" Width="*"/>
+                <ColumnDefinition x:Name="PlayerBarCol1" Width="Auto"/>
+                <ColumnDefinition x:Name="PlayerBarCol2" Width="*"/>
             </Grid.ColumnDefinitions>
 
             <Border BorderBrush="{ThemeResource ControlBackgroundBrush}" BorderThickness="0,1,0,0" Grid.ColumnSpan="3" VerticalAlignment="Top"/>
 
             <!-- Album Art & Info -->
-            <StackPanel Orientation="Horizontal" Margin="12,0" Tapped="PlayerBar_Tapped" Background="Transparent">
-                <Grid x:Name="AlbumArtGrid" Margin="0,8" Width="64" Height="64">
-                    <Image x:Name="MobileAlbumArt" Source="{Binding CurrentSong.ImageUrl}" Stretch="UniformToFill" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            <Grid Margin="12,0,6,0" Tapped="PlayerBar_Tapped" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid x:Name="AlbumArtGrid" Grid.Column="0" Margin="0,8" Width="64" Height="64">
+                    <Image Grid.RowSpan="2" Source="{x:Bind LocalAlbumArt, Mode=OneWay}" Stretch="UniformToFill" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
                     <ProgressRing x:Name="BufferingRing" IsActive="{Binding IsBuffering}" Width="40" Height="40" Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False"/>
                 </Grid>
-                <ScrollViewer x:Name="TextScroller" VerticalAlignment="Center" Margin="12,0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Auto">
-                    <StackPanel>
-                        <TextBlock Text="{Binding CurrentSong.Title, FallbackValue='Not Playing'}" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource ForegroundBrush}"/>
-                        <TextBlock Text="{Binding CurrentSong.Artist, FallbackValue=''}" Opacity="0.7" FontSize="13" Margin="0,2,0,0" Foreground="{ThemeResource SecondaryForegroundBrush}" IsTapEnabled="True" Tapped="PlayerArtist_Tapped"/>
-                    </StackPanel>
-                </ScrollViewer>
-            </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0">
+                    <controls:ScrollableTextBlock Text="{Binding CurrentSong.Title, FallbackValue='Not Playing'}" FontWeight="SemiBold" FontSize="15" Foreground="{ThemeResource ForegroundBrush}"/>
+                    <controls:ScrollableTextBlock Text="{Binding CurrentSong.Artist, FallbackValue=''}" FontSize="13" Margin="0,2,0,0" Foreground="{ThemeResource SecondaryForegroundBrush}" Opacity="0.7" IsTapEnabled="True" Tapped="PlayerArtist_Tapped"/>
+                </StackPanel>
+            </Grid>
 
             <!-- Controls -->
             <!-- Controls -->
@@ -254,6 +259,7 @@
             </StackPanel>
         </Grid>
 
-        <MediaElement x:Name="GlobalMediaElement" x:FieldModifier="Public" AudioCategory="Media" AutoPlay="False" IsLooping="False" AreTransportControlsEnabled="False" Width="1" Height="1" Opacity="0.001" />
+        <!-- MediaElement Removed: Replaced by Background MediaPlayer in PlaybackService -->
+        <!-- <MediaElement x:Name="GlobalMediaElement" x:FieldModifier="Public" AudioCategory="Media" AutoPlay="False" IsLooping="False" AreTransportControlsEnabled="False" Width="1" Height="1" Opacity="0.001" /> -->
     </Grid>
 </Page>

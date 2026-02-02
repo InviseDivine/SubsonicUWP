@@ -172,11 +172,46 @@ namespace SubsonicUWP
             }
         }
 
-        private async void Download_Click(object sender, RoutedEventArgs e)
+        private void AddToCache_Click(object sender, RoutedEventArgs e)
+        {
+             if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+             {
+                  Services.PlaybackService.Instance.EnqueueDownload(item, isTransient: false);
+             }
+        }
+
+        private async void Export_Click(object sender, RoutedEventArgs e)
         {
              if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
              {
                  await DownloadManager.StartDownload(item);
+             }
+        }
+
+        private void AddToQueue_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+            {
+                var mp = (Windows.UI.Xaml.Window.Current.Content as Frame)?.Content as MainPage;
+                mp?.AddToQueue(item);
+            }
+        }
+
+        private void PlayNext_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+            {
+                var mp = (Windows.UI.Xaml.Window.Current.Content as Frame)?.Content as MainPage;
+                mp?.PlayNext(item);
+            }
+        }
+
+        private void AddToPlaylist_Click(object sender, RoutedEventArgs e)
+        {
+             if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+             {
+                 var mp = (Windows.UI.Xaml.Window.Current.Content as Frame)?.Content as MainPage;
+                 mp?.ShowPlaylistPicker(item);
              }
         }
 

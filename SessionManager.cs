@@ -45,52 +45,95 @@ namespace SubsonicUWP
             }
         }
 
-        public static async Task SaveCurrentState(ObservableCollection<SubsonicItem> queue, string name, int index, Guid sessionId, TimeSpan position, bool isShuffle, int repeatMode)
+        public static async Task UpdateSession(SavedSession session)
         {
-            await _stateSemaphore.WaitAsync();
+            await _sessionSemaphore.WaitAsync();
             try
             {
-                if (queue == null || queue.Count == 0)
-                {
-                    // If queue is empty, remove the state file so we don't resume an empty session
-                     try
-                     {
-                         var file = await ApplicationData.Current.LocalFolder.GetFileAsync(STATE_FILE);
-                         await file.DeleteAsync();
-                     }
-                     catch (System.IO.FileNotFoundException) { } 
-                     return;
-                }
-
-                var session = new SavedSession 
-                { 
-                    Id = sessionId,
-                    Name = name, 
-                    Created = DateTime.Now, 
-                    Tracks = new List<SubsonicItem>(queue), 
-                    CurrentIndex = index,
-                    Position = position,
-                    IsShuffle = isShuffle, 
-                    RepeatMode = repeatMode
-                };
-
-                using (var stream = new System.IO.MemoryStream())
-                {
-                     var serializer = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(SavedSession));
-                     serializer.WriteObject(stream, session);
-                     stream.Position = 0;
-                     using (var reader = new System.IO.StreamReader(stream))
-                     {
-                         var text = reader.ReadToEnd();
-                         var file = await ApplicationData.Current.LocalFolder.CreateFileAsync(STATE_FILE, CreationCollisionOption.ReplaceExisting);
-                         await FileIO.WriteTextAsync(file, text);
-                     }
-                }
+                var sessions = await LoadSessionsInternal();
+                var existing = sessions.FirstOrDefault(s => s.Id == session.Id);
+                
+                if (existing != null) sessions.Remove(existing);
+                sessions.Insert(0, session); // Move to top or keep? Moved to top usually implies "Recent"
+                
+                await WriteSessionsInternal(sessions);
             }
             finally
             {
-                _stateSemaphore.Release();
+                _sessionSemaphore.Release();
             }
+        }
+
+        private static System.Threading.CancellationTokenSource _saveDebounceToken;
+
+        public static void SaveCurrentState(ObservableCollection<SubsonicItem> queue, string name, int index, Guid sessionId, TimeSpan position, bool isShuffle, int repeatMode)
+        {
+            // Cancel previous pending save
+            _saveDebounceToken?.Cancel();
+            _saveDebounceToken = new System.Threading.CancellationTokenSource();
+            var token = _saveDebounceToken.Token;
+
+            // Clone collections to avoid thread conflict during delay
+            // Note: Shallow copy of list is okay as items aren't modified, but collection might change
+            var queueCopy = new List<SubsonicItem>(queue ?? new ObservableCollection<SubsonicItem>());
+
+            // Fire and Forget Background Task with Debounce
+            Task.Run(async () =>
+            {
+                try
+                {
+                    // Debounce: Wait 2 seconds to see if another change comes in
+                    await Task.Delay(2000, token);
+                    if (token.IsCancellationRequested) return;
+
+                    await _stateSemaphore.WaitAsync(token);
+                    try
+                    {
+                        if (queueCopy == null || queueCopy.Count == 0)
+                        {
+                            // If queue is empty, remove the state file
+                            try
+                            {
+                                var file = await ApplicationData.Current.LocalFolder.GetFileAsync(STATE_FILE);
+                                await file.DeleteAsync();
+                            }
+                            catch (System.IO.FileNotFoundException) { }
+                            return;
+                        }
+
+                        var session = new SavedSession
+                        {
+                            Id = sessionId,
+                            Name = name,
+                            Created = DateTime.Now,
+                            Tracks = queueCopy,
+                            CurrentIndex = index,
+                            Position = position,
+                            IsShuffle = isShuffle,
+                            RepeatMode = repeatMode
+                        };
+
+                        using (var stream = new System.IO.MemoryStream())
+                        {
+                            var serializer = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(SavedSession));
+                            serializer.WriteObject(stream, session);
+                            stream.Position = 0;
+                            using (var reader = new System.IO.StreamReader(stream))
+                            {
+                                var text = reader.ReadToEnd();
+                                var file = await ApplicationData.Current.LocalFolder.CreateFileAsync(STATE_FILE, CreationCollisionOption.ReplaceExisting);
+                                await FileIO.WriteTextAsync(file, text);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        _stateSemaphore.Release();
+                    }
+                }
+                catch (OperationCanceledException) { } // Ignore cancel
+                catch (Exception) { } // Silent fail for background save
+            });
         }
 
         public static async Task<SavedSession> LoadCurrentState()

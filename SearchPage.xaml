@@ -12,10 +12,11 @@
                 <!-- Context Menu Resource Wrapper -->
                 <FlyoutBase.AttachedFlyout>
                     <MenuFlyout>
-                        <MenuFlyoutItem Text="Add to current queue" Click="AddToQueue_Click"/>
-                        <MenuFlyoutItem Text="Play next" Click="PlayNext_Click"/>
-                        <MenuFlyoutItem Text="Favorite" Click="Favorite_Click"/>
-                        <MenuFlyoutItem Text="Download" Click="Download_Click"/>
+                        <MenuFlyoutItem Text="Add to current queue" Click="AddToQueue_Click" Icon="Add"/>
+                        <MenuFlyoutItem Text="Play next" Click="PlayNext_Click" Icon="Upload"/>
+                        <!-- Favorite removed for Albums/Artists as requested -->
+                        <MenuFlyoutItem Text="Add to cache" Click="AddToCache_Click" Icon="Download"/>
+                        <MenuFlyoutItem Text="Export as mp3" Click="Export_Click" Icon="SaveLocal"/>
                     </MenuFlyout>
                 </FlyoutBase.AttachedFlyout>
 
@@ -40,10 +41,11 @@
             <Grid Margin="0,4" Background="Transparent" RightTapped="MediaItemGrid_RightTapped" Holding="MediaItemGrid_Holding" Padding="8">
                 <FlyoutBase.AttachedFlyout>
                     <MenuFlyout>
-                        <MenuFlyoutItem Text="Add to current queue" Click="AddToQueue_Click"/>
-                        <MenuFlyoutItem Text="Play next" Click="PlayNext_Click"/>
-                        <MenuFlyoutItem Text="Favorite" Click="Favorite_Click"/>
-                        <MenuFlyoutItem Text="Download" Click="Download_Click"/>
+                        <MenuFlyoutItem Text="Add to current queue" Click="AddToQueue_Click" Icon="Add"/>
+                        <MenuFlyoutItem Text="Play next" Click="PlayNext_Click" Icon="Upload"/>
+                        <MenuFlyoutItem Text="Favorite" Click="Favorite_Click" Icon="Favorite"/>
+                        <MenuFlyoutItem Text="Add to cache" Click="AddToCache_Click" Icon="Download"/>
+                        <MenuFlyoutItem Text="Export as mp3" Click="Export_Click" Icon="SaveLocal"/>
                     </MenuFlyout>
                 </FlyoutBase.AttachedFlyout>
                 <Grid.ColumnDefinitions>

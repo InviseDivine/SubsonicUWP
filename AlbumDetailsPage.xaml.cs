@@ -122,21 +122,36 @@ namespace SubsonicUWP
             }
         }
 
-        private async void DownloadAlbum_Click(object sender, RoutedEventArgs e)
+        private async void ExportAlbum_Click(object sender, RoutedEventArgs e)
         {
             if (Tracks != null && Tracks.Any())
             {
-                var dialog = new Windows.UI.Popups.MessageDialog($"Starting download for {Tracks.Count} tracks...", "Download Album");
-                await dialog.ShowAsync();
+                if (Tracks.Count > 1)
+                {
+                    var dialog = new Windows.UI.Popups.MessageDialog($"Starting export for {Tracks.Count} tracks...", "Export Album");
+                    await dialog.ShowAsync();
+                }
                 
+                // Should we optimize artist/album info if missing before enqueueing?
                 foreach (var t in Tracks)
                 {
-                    // Should we optimize artist/album info if missing?
                     if (string.IsNullOrEmpty(t.Artist)) t.Artist = _album.Artist;
                     if (string.IsNullOrEmpty(t.Album)) t.Album = _album.Title;
-                    
                     await DownloadManager.StartDownload(t);
                 }
+            }
+        }
+
+        private void AddToCacheAlbum_Click(object sender, RoutedEventArgs e)
+        {
+            if (Tracks != null && Tracks.Any())
+            {
+                foreach (var t in Tracks)
+                {
+                    if (string.IsNullOrEmpty(t.Artist)) t.Artist = _album.Artist;
+                    if (string.IsNullOrEmpty(t.Album)) t.Album = _album.Title;
+                }
+                Services.PlaybackService.Instance.EnqueueDownloads(Tracks, isTransient: false);
             }
         }
 
@@ -167,12 +182,21 @@ namespace SubsonicUWP
             }
         }
 
-        private async void TrackDownload_Click(object sender, RoutedEventArgs e)
+        private async void TrackExport_Click(object sender, RoutedEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
             {
                 if (string.IsNullOrEmpty(item.Artist)) item.Artist = _album?.Artist;
                 await DownloadManager.StartDownload(item);
+            }
+        }
+
+        private void TrackAddToCache_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+            {
+                if (string.IsNullOrEmpty(item.Artist)) item.Artist = _album?.Artist;
+                Services.PlaybackService.Instance.EnqueueDownload(item, isTransient: false);
             }
         }
 
@@ -184,7 +208,6 @@ namespace SubsonicUWP
             if (isPinned)
             {
                 await PinnedAlbumManager.UnpinAlbum(_album.Id);
-                PinButton.Content = "Pin to Tile";
             }
             else
             {
@@ -207,15 +230,20 @@ namespace SubsonicUWP
                 }
                 
                 await PinnedAlbumManager.PinAlbum(_album);
-                PinButton.Content = "Unpin from Tile";
             }
+            UpdatePinState();
         }
 
         private async void UpdatePinState()
         {
             if (_album == null) return;
             bool isPinned = await PinnedAlbumManager.IsPinned(_album.Id);
-            PinButton.Content = isPinned ? "Unpin from Tile" : "Pin to Tile";
+            
+            // Update Icon
+            PinButton.Content = new SymbolIcon(isPinned ? Symbol.UnPin : Symbol.Pin);
+            
+            // Update ToolTip
+            ToolTipService.SetToolTip(PinButton, isPinned ? "Unpin from Tile" : "Pin to Tile");
         }
     }
 }

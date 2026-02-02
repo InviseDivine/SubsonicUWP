@@ -197,21 +197,41 @@ namespace SubsonicUWP
              }
         }
 
-        private async void AlbumDownload_Click(object sender, RoutedEventArgs e)
+        private async void AlbumExport_Click(object sender, RoutedEventArgs e)
         {
              if ((sender as FrameworkElement)?.DataContext is SubsonicItem album)
              {
                  var tracks = await SubsonicService.Instance.GetAlbum(album.Id);
                  if (tracks.Count > 0)
                  {
-                     var dialog = new Windows.UI.Popups.MessageDialog($"Starting download for {tracks.Count} tracks...", "Download Album");
-                     await dialog.ShowAsync();
+                     if (tracks.Count > 1)
+                     {
+                         var dialog = new Windows.UI.Popups.MessageDialog($"Starting export for {tracks.Count} tracks...", "Export Album");
+                         await dialog.ShowAsync();
+                     }
                      foreach(var t in tracks)
                      {
                          if (string.IsNullOrEmpty(t.Artist)) t.Artist = album.Artist;
                          if (string.IsNullOrEmpty(t.Album)) t.Album = album.Title;
                          await DownloadManager.StartDownload(t);
                      }
+                 }
+             }
+        }
+
+        private async void AlbumAddToCache_Click(object sender, RoutedEventArgs e)
+        {
+             if ((sender as FrameworkElement)?.DataContext is SubsonicItem album)
+             {
+                 var tracks = await SubsonicService.Instance.GetAlbum(album.Id);
+                 if (tracks.Count > 0)
+                 {
+                     foreach(var t in tracks)
+                     {
+                         if (string.IsNullOrEmpty(t.Artist)) t.Artist = album.Artist;
+                         if (string.IsNullOrEmpty(t.Album)) t.Album = album.Title;
+                     }
+                     Services.PlaybackService.Instance.EnqueueDownloads(tracks, isTransient: false);
                  }
              }
         }
@@ -234,7 +254,15 @@ namespace SubsonicUWP
             }
         }
 
-        private async void SongDownload_Click(object sender, RoutedEventArgs e)
+        private void SongAddToCache_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
+            {
+                Services.PlaybackService.Instance.EnqueueDownload(item, isTransient: false);
+            }
+        }
+
+        private async void SongExport_Click(object sender, RoutedEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is SubsonicItem item)
             {
