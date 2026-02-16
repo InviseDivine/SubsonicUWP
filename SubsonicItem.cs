@@ -30,7 +30,11 @@ namespace SubsonicUWP
         [DataMember]
         public string Title { get; set; }
         [DataMember]
+        public int TrackNumber { get; set; }
+        [DataMember]
         public string Artist { get; set; }
+        [DataMember]
+        public string Suffix { get; set; }
         [DataMember(Name = "artistId")]
         public string ArtistId { get; set; }
         

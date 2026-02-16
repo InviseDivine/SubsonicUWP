@@ -16,7 +16,7 @@
         </MenuFlyout>
 
         <DataTemplate x:Key="SongTemplate">
-            <Grid Width="148" Margin="0,0,12,24" Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" FlyoutBase.AttachedFlyout="{StaticResource MediaItemMenu}" RightTapped="MediaItemGrid_RightTapped" Holding="MediaItemGrid_Holding">
+            <Grid Width="148" Margin="4, 4, 4, 4" Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" FlyoutBase.AttachedFlyout="{StaticResource MediaItemMenu}" RightTapped="MediaItemGrid_RightTapped" Holding="MediaItemGrid_Holding">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="148"/>
                     <RowDefinition Height="Auto"/>

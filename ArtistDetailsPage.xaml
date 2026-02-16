@@ -13,7 +13,7 @@
                         <MenuFlyoutItem Text="Play next" Click="SongPlayNext_Click" Icon="Upload"/>
                         <MenuFlyoutItem Text="Add to queue" Click="SongAddToQueue_Click" Icon="Add"/>
                         <MenuFlyoutItem Text="Add to cache" Click="SongAddToCache_Click" Icon="Download"/>
-                        <MenuFlyoutItem Text="Export as mp3" Click="SongExport_Click" Icon="SaveLocal"/>
+                        <MenuFlyoutItem Text="Download" Click="SongExport_Click" Icon="SaveLocal"/>
                     </MenuFlyout>
                 </FlyoutBase.AttachedFlyout>
                 <Grid.ColumnDefinitions>

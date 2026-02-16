@@ -31,7 +31,7 @@
             </GridView.ItemContainerTransitions>
             <GridView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Margin="0,0,12,24" Width="148" Background="Transparent" RightTapped="Grid_RightTapped">
+                    <Grid Margin="4, 4, 4, 4" Width="148" Background="Transparent" RightTapped="Grid_RightTapped">
                         <FlyoutBase.AttachedFlyout>
                             <MenuFlyout>
                                 <MenuFlyoutItem Text="Play" Click="AlbumPlay_Click" Icon="Play"/>

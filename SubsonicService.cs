@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Xml.Linq;
+using System.Diagnostics;
 
 namespace SubsonicUWP
 {
@@ -354,7 +355,9 @@ namespace SubsonicUWP
                      Created = created,
                      IsStarred = !string.IsNullOrEmpty(elem.GetAttribute("starred")),
                      ArtistId = elem.GetAttribute("artistId"),
-                     AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent")
+                     AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent"),
+                     TrackNumber = int.TryParse(elem.GetAttribute("track"), out int tn) ? tn : 0,
+                     Suffix = elem.GetAttribute("suffix"),
                  });
              }
              return list;
@@ -372,8 +375,12 @@ namespace SubsonicUWP
                 if (node != null)
                 {
                     var elem = node as Windows.Data.Xml.Dom.XmlElement;
-                    DateTime.TryParse(elem.GetAttribute("created"), out DateTime created);
                     
+                    
+                    DateTime.TryParse(elem.GetAttribute("created"), out DateTime created);
+
+                    Debug.WriteLine(elem);
+
                     return new SubsonicItem 
                     { 
                         Id = elem.GetAttribute("id"),
@@ -385,7 +392,9 @@ namespace SubsonicUWP
                         Created = created,
                         IsStarred = !string.IsNullOrEmpty(elem.GetAttribute("starred")),
                         ArtistId = elem.GetAttribute("artistId"),
-                        AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent")
+                        AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent"),
+                        TrackNumber = int.TryParse(elem.GetAttribute("track"), out int tn) ? tn : 0,
+                        Suffix = elem.GetAttribute("suffix"),
                     };
                 }
              }
@@ -463,7 +472,9 @@ namespace SubsonicUWP
                      CoverArtId = elem.GetAttribute("coverArt"),
                      Duration = int.TryParse(elem.GetAttribute("duration"), out int d) ? d : 0,
                      ArtistId = elem.GetAttribute("artistId"),
-                     AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent")
+                     AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent"),
+                     TrackNumber = int.TryParse(elem.GetAttribute("track"), out int tn) ? tn : 0,
+                     Suffix = elem.GetAttribute("suffix"),
                  });
              }
              return list;
@@ -491,7 +502,9 @@ namespace SubsonicUWP
                      CoverArtId = elem.GetAttribute("coverArt"),
                      Duration = int.TryParse(elem.GetAttribute("duration"), out int d) ? d : 0,
                      ArtistId = elem.GetAttribute("artistId"),
-                     AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent")
+                     AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent"),
+                     TrackNumber = int.TryParse(elem.GetAttribute("track"), out int tn) ? tn : 0,
+                     Suffix = elem.GetAttribute("suffix"),
                  });
              }
              return list;
@@ -527,7 +540,8 @@ namespace SubsonicUWP
                          CoverArtId = albElem.GetAttribute("coverArt"),
                          Duration = int.TryParse(albElem.GetAttribute("duration"), out int d) ? d : 0,
                          Created = DateTime.TryParse(albElem.GetAttribute("created"), out DateTime c) ? c : DateTime.MinValue,
-                         IsStarred = !string.IsNullOrEmpty(albElem.GetAttribute("starred"))
+                         IsStarred = !string.IsNullOrEmpty(albElem.GetAttribute("starred")),
+                         TrackNumber = int.TryParse(elem.GetAttribute("track"), out int tn) ? tn : 0,
                      });
                  }
              }
@@ -560,7 +574,8 @@ namespace SubsonicUWP
                             Duration = int.TryParse(elem.GetAttribute("duration"), out int d) ? d : 0,
                             IsStarred = !string.IsNullOrEmpty(elem.GetAttribute("starred")),
                             ArtistId = elem.GetAttribute("artistId"),
-                            AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent")
+                            AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent"),
+              
                          });
                      }
                      

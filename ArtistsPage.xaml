@@ -23,7 +23,7 @@
                                     <MenuFlyoutItem Text="Add to current queue" Click="AddToQueue_Click" Icon="Add"/>
                                     <MenuFlyoutItem Text="Play next" Click="PlayNext_Click" Icon="Upload"/>
                                     <MenuFlyoutItem Text="Add to cache" Click="AddToCache_Click" Icon="Download"/>
-                                    <MenuFlyoutItem Text="Export as mp3" Click="Export_Click" Icon="SaveLocal"/>
+                                    <MenuFlyoutItem Text="Download" Click="Export_Click" Icon="SaveLocal"/>
                                 </MenuFlyout>
                             </FlyoutBase.AttachedFlyout>
 
@@ -33,7 +33,7 @@
                             </Grid.RowDefinitions>
 
                             <!-- Boxy Artist Placeholder (Square) -->
-                            <Border Width="148" Height="148" Background="#333">
+                            <Border Width="148" Height="148">
                                 <Grid>
                                     <!-- Using Contact/Person icon instead of Album -->
                                     <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" FontSize="48" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.3"/>

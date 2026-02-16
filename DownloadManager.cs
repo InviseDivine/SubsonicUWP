@@ -21,9 +21,10 @@ namespace SubsonicUWP
                 // Sanitize filename
                 var artist = string.IsNullOrWhiteSpace(song.Artist) ? "Unknown Artist" : Sanitize(song.Artist);
                 var title = string.IsNullOrWhiteSpace(song.Title) ? "Unknown Title" : Sanitize(song.Title);
-                
+                var suffix = string.IsNullOrWhiteSpace(song.Suffix) ? "mp3" : Sanitize(song.Suffix);
+
                 // Save directly to Music folder
-                var filename = $"{artist} - {title}.mp3"; 
+                var filename = $"{artist} - {title}.{suffix}"; 
                 var destinationFile = await musicFolder.CreateFileAsync(filename, CreationCollisionOption.GenerateUniqueName);
 
                 // Build Download URL
