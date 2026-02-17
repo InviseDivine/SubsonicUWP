@@ -86,6 +86,9 @@ namespace SubsonicUWP
         public string DurationFormatted => TimeSpan.FromSeconds(Duration).ToString(@"mm\:ss");
 
         [DataMember]
+        public int Size { get; set; }
+
+        [DataMember]
         public bool IsStarred { get; set; }
         public SubsonicItem Clone()
         {

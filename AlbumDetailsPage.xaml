@@ -24,12 +24,12 @@
             </MenuFlyoutItem>
             <MenuFlyoutItem Text="Add to cache" Click="TrackAddToCache_Click">
                 <MenuFlyoutItem.Icon>
-                    <SymbolIcon Symbol="Download"/>
+                    <SymbolIcon Symbol="SaveLocal"/>
                 </MenuFlyoutItem.Icon>
             </MenuFlyoutItem>
-            <MenuFlyoutItem Text="Export as mp3" Click="TrackExport_Click">
+            <MenuFlyoutItem Text="Download" Click="TrackExport_Click">
                 <MenuFlyoutItem.Icon>
-                    <SymbolIcon Symbol="SaveLocal"/>
+                    <SymbolIcon Symbol="Download"/>
                 </MenuFlyoutItem.Icon>
             </MenuFlyoutItem>
         </MenuFlyout>
@@ -80,13 +80,16 @@
                             <SymbolIcon Symbol="Play"/>
                         </Button>
                         <Button Click="AddToCacheAlbum_Click" Margin="0,0,8,0" Width="44" Height="44" ToolTipService.ToolTip="Add to Cache">
-                            <SymbolIcon Symbol="Download"/>
-                        </Button>
-                        <Button Click="ExportAlbum_Click" Margin="0,0,8,0" Width="44" Height="44" ToolTipService.ToolTip="Export as mp3">
                             <SymbolIcon Symbol="SaveLocal"/>
                         </Button>
-                        <Button x:Name="PinButton" Click="PinButton_Click" Width="44" Height="44" ToolTipService.ToolTip="Pin to Start">
+                        <Button x:Name="Download" Click="ExportAlbum_Click" Margin="0,0,8,0" Width="44" Height="44" ToolTipService.ToolTip="Download">
+                            <SymbolIcon Symbol="Download"/>
+                        </Button>
+                        <Button x:Name="PinButton" Click="PinButton_Click" Margin="0,0,8,0" Width="44" Height="44" ToolTipService.ToolTip="Pin to Start">
                             <SymbolIcon Symbol="Pin"/>
+                        </Button>
+                        <Button x:Name="Favorite" Click="Favorite_Click" Width="44" Height="44" ToolTipService.ToolTip="Favorite">
+                            <SymbolIcon Symbol="OutlineStar"/>
                         </Button>
                     </StackPanel>
                 </StackPanel>
