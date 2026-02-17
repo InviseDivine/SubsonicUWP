@@ -55,6 +55,8 @@ namespace SubsonicUWP
         private async System.Threading.Tasks.Task LoadAlbumData()
         {
             if (_navParam == null) return;
+            int AlbumSize = 0;
+
             try
             {
                 if (_navParam is SubsonicItem album)
@@ -62,17 +64,26 @@ namespace SubsonicUWP
                     _album = album;
                     AlbumTitle.Text = album.Title;
                     AlbumArtist.Text = album.Artist;
+                 
                     if (!string.IsNullOrEmpty(album.ImageUrl)) AlbumCover.Source = new Windows.UI.Xaml.Media.Imaging.BitmapImage(new Uri(album.ImageUrl));
                     
                     Tracks.Clear();
                     var list = await SubsonicService.Instance.GetAlbum(album.Id);
-                    foreach(var t in list) Tracks.Add(t);
+                    foreach (var t in list)
+                    {
+                        Tracks.Add(t);
+                        AlbumSize += t.Size;
+                    }
                 }
                 else if (_navParam is string albumId)
                 {
                     Tracks.Clear();
                     var list = await SubsonicService.Instance.GetAlbum(albumId);
-                    foreach(var t in list) Tracks.Add(t);
+                    foreach (var t in list)
+                    {
+                        Tracks.Add(t);
+                        AlbumSize += t.Size;
+                    }
                     
                     if (Tracks.Count > 0)
                     {
@@ -89,7 +100,15 @@ namespace SubsonicUWP
                         if (!string.IsNullOrEmpty(_album.ImageUrl)) AlbumCover.Source = new Windows.UI.Xaml.Media.Imaging.BitmapImage(new Uri(_album.ImageUrl));
                     }
                 }
-                
+
+                AlbumSize /= 1024 * 1024;
+                ToolTipService.SetToolTip(Download, "Download (" + AlbumSize + " MB)");
+
+                if (_album.IsStarred)
+                {
+                    Favorite.Content = new SymbolIcon(Symbol.SolidStar);
+                }
+
                 IsOffline = false;
                 _retryTimer.Stop();
             }
@@ -128,7 +147,7 @@ namespace SubsonicUWP
             {
                 if (Tracks.Count > 1)
                 {
-                    var dialog = new Windows.UI.Popups.MessageDialog($"Starting export for {Tracks.Count} tracks...", "Export Album");
+                    var dialog = new Windows.UI.Popups.MessageDialog($"Starting export for {Tracks.Count} tracks... You can close this window.", "Export Album");
                     await dialog.ShowAsync();
                 }
                 
@@ -232,6 +251,24 @@ namespace SubsonicUWP
                 await PinnedAlbumManager.PinAlbum(_album);
             }
             UpdatePinState();
+        }
+
+        private async void Favorite_Click(object sender, RoutedEventArgs e)
+        {
+            // Should work ig
+            bool success = false;
+            if (_album.IsStarred)
+               success = await SubsonicService.Instance.UnstarItem(_album.Id);
+            else
+               success = await SubsonicService.Instance.StarItem(_album.Id);
+
+            if (success)
+            {
+                _album.IsStarred = !_album.IsStarred;
+
+                var btn = sender as Button;
+                btn.Content = new SymbolIcon((_album.IsStarred) ?  Symbol.SolidStar : Symbol.OutlineStar);
+            }
         }
 
         private async void UpdatePinState()

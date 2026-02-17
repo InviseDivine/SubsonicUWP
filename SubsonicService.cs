@@ -140,10 +140,9 @@ namespace SubsonicUWP
             var doc = new Windows.Data.Xml.Dom.XmlDocument();
             doc.LoadXml(xml);
             // Subsonic returns <starred><song .../><album .../></starred>
-            // We'll focus on songs for now, but could add albums too.
-            var nodes = doc.SelectNodes("//*[local-name()='song']");
+            var songs = doc.SelectNodes("//*[local-name()='song']");
 
-            foreach (var node in nodes)
+            foreach (var node in songs)
             {
                 var elem = node as Windows.Data.Xml.Dom.XmlElement;
                 list.Add(new SubsonicItem
@@ -159,6 +158,25 @@ namespace SubsonicUWP
                     AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent")
                 });
             }
+
+            var albums = doc.SelectNodes("//*[local-name()='album']");
+
+            foreach (var node in albums)
+            {
+                var elem = node as Windows.Data.Xml.Dom.XmlElement;
+                list.Add(new SubsonicItem
+                {
+                    Id = elem.GetAttribute("id"),
+                    Title = elem.GetAttribute("title"),
+                    Artist = elem.GetAttribute("artist"),
+                    Album = elem.GetAttribute("album"),
+                    CoverArtId = elem.GetAttribute("coverArt"),
+                    IsStarred = true, // Returned by getStarred, so obviously starred
+                    Created = DateTime.TryParse(elem.GetAttribute("created"), out DateTime c) ? c : DateTime.MinValue,
+                    AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent")
+                });
+            }
+
             return list;
         }
 
@@ -217,12 +235,13 @@ namespace SubsonicUWP
              var nodes = doc.GetElementsByTagName("album");
              foreach (var node in nodes) {
                  var elem = node as Windows.Data.Xml.Dom.XmlElement;
-                 list.Add(new SubsonicItem {
-                      Id = elem.GetAttribute("id"),
-                      Title = elem.GetAttribute("title"),
-                      Artist = elem.GetAttribute("artist"),
-                      CoverArtId = elem.GetAttribute("coverArt"),
-                      IsStarred = !string.IsNullOrEmpty(elem.GetAttribute("starred"))
+                list.Add(new SubsonicItem {
+                    Id = elem.GetAttribute("id"),
+                    Title = elem.GetAttribute("title"),
+                    Artist = elem.GetAttribute("artist"),
+                    CoverArtId = elem.GetAttribute("coverArt"),
+                    IsStarred = !string.IsNullOrEmpty(elem.GetAttribute("starred")),
+                    Size = int.Parse(elem.GetAttribute("size")),
                  });
              }
              return list;
@@ -358,6 +377,7 @@ namespace SubsonicUWP
                      AlbumId = !string.IsNullOrEmpty(elem.GetAttribute("albumId")) ? elem.GetAttribute("albumId") : elem.GetAttribute("parent"),
                      TrackNumber = int.TryParse(elem.GetAttribute("track"), out int tn) ? tn : 0,
                      Suffix = elem.GetAttribute("suffix"),
+                     Size = int.Parse(elem.GetAttribute("size")),
                  });
              }
              return list;

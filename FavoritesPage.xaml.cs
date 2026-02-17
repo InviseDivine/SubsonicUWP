@@ -46,8 +46,8 @@ namespace SubsonicUWP
             try
             {
                 Favorites.Clear();
-                var songs = await SubsonicService.Instance.GetStarred();
-                foreach (var s in songs) Favorites.Add(s);
+                var items = await SubsonicService.Instance.GetStarred();
+                foreach (var s in items) Favorites.Add(s);
                 IsOffline = false;
                 _retryTimer.Stop();
             }
@@ -60,11 +60,18 @@ namespace SubsonicUWP
 
         private void GridView_ItemClick(object sender, ItemClickEventArgs e)
         {
-             if (e.ClickedItem is SubsonicItem song)
-             {
-                 var mp = (Windows.UI.Xaml.Window.Current.Content as Frame)?.Content as MainPage;
-                 mp?.PlayTrackList(Favorites, song, "Favorites");
-             }
+            if (e.ClickedItem is SubsonicItem item)
+            {
+                var mp = (Windows.UI.Xaml.Window.Current.Content as Frame)?.Content as MainPage;
+                if (!String.IsNullOrEmpty(item.Album))
+                {
+                    Frame.Navigate(typeof(AlbumDetailsPage), item);
+                }
+                else
+                {
+                    mp?.PlayTrackList(Favorites, item, "Favorites");
+                }
+            }
         }
 
         private void MediaItemGrid_RightTapped(object sender, Windows.UI.Xaml.Input.RightTappedRoutedEventArgs e)
